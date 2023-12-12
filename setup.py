@@ -5,20 +5,14 @@ import torch
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 
-if not torch.cuda.is_available():
-    if os.environ.get("TORCH_CUDA_ARCH_LIST", None) is None:
-        os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0"
+# if not torch.cuda.is_available():
+#     if os.environ.get("TORCH_CUDA_ARCH_LIST", None) is None:
+#         os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0"
 
 
-cwd = Path(os.path.dirname(os.path.abspath(__file__)))
-_dc = torch.cuda.get_device_capability()
-if _dc[0] < 8:
-    print("Unsupported compute capability, only device capability >=80 are supported.")
-    # DEBUG: set dc=8 as a workaround when ci is scheduled on V100.
-    _dc = (8, 0)
-    # sys.exit(0)
-
-_dc = f"{_dc[0]}{_dc[1]}"
+# cwd = Path(os.path.dirname(os.path.abspath(__file__)))
+# _dc = torch.cuda.get_device_capability()
+# _dc = f"{_dc[0]}{_dc[1]}"
 
 # DEBUG: Currently we only test perf on A100
 _dc = 80
