@@ -20,6 +20,9 @@ if _dc[0] < 8:
 
 _dc = f"{_dc[0]}{_dc[1]}"
 
+# DEBUG: Currently we only test perf on A100
+_dc = 80
+
 ext_modules = [
     CUDAExtension(
         "grouped_gemm_backend",
