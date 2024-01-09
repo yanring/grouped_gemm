@@ -3,8 +3,10 @@
 # See LICENSE for license information.
 
 import torch
+import os
 
-torch.classes.load_library("./build/libmoe_unit_ops.so")
+so_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/build'
+torch.classes.load_library(so_dir + '/libmoe_unit_ops.so')
 
 # TODO by Jiang Shao, add parameter `out` which can be optionally given to be used as output buffers.
 

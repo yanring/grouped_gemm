@@ -65,7 +65,7 @@ def basic_moe_fc_backward(activations, expert_for_row, weights):
 class TestMoe(unittest.TestCase):
 
   def setUp(self) -> None:
-    torch.classes.load_library("./build/libmoe_unit_ops.so")
+    # torch.classes.load_library("./build/libmoe_unit_ops.so")
     torch.manual_seed(734876213)
     self.moe_group_gemm_op = torch.ops.moe_unit_ops.moe_group_gemm_op
     self.moe_group_gemm_backward_op = torch.ops.moe_unit_ops.moe_group_gemm_backward_op
@@ -408,5 +408,8 @@ class TestMoe(unittest.TestCase):
     self.grouped_gemm_backward_helper(num_rows, hidden_size, inter_size, num_experts, dtype, atol, RAND_INPUT_ACT, RAND_INPUT_WEIGHT, PRINT)
 
 
-if __name__ == '__main__':
-    unittest.main()
+def test_func():
+  loader = unittest.TestLoader()
+  suite = loader.loadTestsFromTestCase(TestMoe)
+  runner = unittest.TextTestRunner()
+  runner.run(suite)

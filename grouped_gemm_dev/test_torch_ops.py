@@ -6,7 +6,7 @@ import torch
 import unittest
 import torch.cuda.nvtx as nvtx
 
-from moe.ops import permute, unpermute, groupedgemm
+from grouped_gemm import permute, unpermute, groupedgemm
 
 class TestMoeOps(unittest.TestCase):
 
@@ -215,5 +215,8 @@ class TestMoeOps(unittest.TestCase):
     self.groupedgemm_ops_helper(num_rows, hidden_size, inter_size, num_experts, dtype, atol, execution_times, PRINT)
 
 
-if __name__ == '__main__':
-  unittest.main()
+def test_ops():
+  loader = unittest.TestLoader()
+  suite = loader.loadTestsFromTestCase(TestMoeOps)
+  runner = unittest.TextTestRunner()
+  runner.run(suite)
