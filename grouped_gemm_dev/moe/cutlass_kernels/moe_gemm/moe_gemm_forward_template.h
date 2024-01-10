@@ -503,6 +503,7 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch(T*                A,
                                                     int*              occupancy)
 {
     if (sm_ >= 70 && sm_ < 75) {
+#ifdef ARCH_70
         dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm70>(A,
                                                                          B,
                                                                          C,
@@ -513,8 +514,10 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch(T*                A,
                                                                          gemm_config,
                                                                          stream,
                                                                          occupancy);
+#endif // ARCH_70
     }
     else if (sm_ >= 75 && sm_ < 80) {
+#ifdef ARCH_75
         dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm75>(A,
                                                                          B,
                                                                          C,
@@ -525,8 +528,10 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch(T*                A,
                                                                          gemm_config,
                                                                          stream,
                                                                          occupancy);
+#endif // ARCH_75
     }
     else if (sm_ >= 80 && sm_ < 90) {
+#ifdef ARCH_80
         dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm80>(A,
                                                                          B,
                                                                          C,
@@ -537,6 +542,7 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch(T*                A,
                                                                          gemm_config,
                                                                          stream,
                                                                          occupancy);
+#endif // ARCH_80
     }
     else {
         throw std::runtime_error("[FT Error][MoE][GEMM Dispatch] Arch unsupported for MoE GEMM");

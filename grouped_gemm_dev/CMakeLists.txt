@@ -49,6 +49,16 @@ if torch.cuda.is_available():
                   OUTPUT_VARIABLE GPU_ARCH)
   message (STATUS "Autodetected NVIDIA GPU arch: ${GPU_ARCH}")
 
+  if (GPU_ARCH EQUAL 70)
+    add_definitions("-DARCH_70")
+  elseif (GPU_ARCH LESS 80)
+    add_definitions("-DARCH_75")
+  elseif (GPU_ARCH LESS_EQUAL 90)
+    add_definitions("-DARCH_80")
+  else ()
+    message (SEND_ERROR "GPU arch not supported!")
+  endif()
+
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-O0;-lineinfo;-lcudart;--expt-extended-lambda;--expt-relaxed-constexpr;--generate-code=arch=compute_${GPU_ARCH},code=sm_${GPU_ARCH};--use_fast_math;")
   message(STATUS "CUDA_INCLUDE_DIRS: ${CUDA_INCLUDE_DIRS}")
   message(STATUS "CUDA_LIBRARIES: ${CUDA_LIBRARIES}")

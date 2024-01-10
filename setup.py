@@ -91,7 +91,7 @@ if use_jiangs_code:
 
     _cmake_bin = str(cmake_bin())
     subprocess.run([_cmake_bin, "-S", cmake_dir, "-B", build_dir])
-    subprocess.run([_cmake_bin, "--build", build_dir, "--parallel=8"])
+    subprocess.run([_cmake_bin, "--build", build_dir, "--parallel"])
 
 
     setup(

@@ -483,7 +483,7 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
     int*              occupancy)
 {
     if (sm_ >= 70 && sm_ < 75) {
-        throw std::runtime_error("[FT Error][MoE][GEMM Dispatch] Arch < SM80 unsupported yet for MoE GEMM");
+#ifdef ARCH_70
         dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm70>(
             A,
             B,
@@ -495,9 +495,10 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
             gemm_config,
             stream,
             occupancy);
+#endif // ARCH_70
     }
     else if (sm_ >= 75 && sm_ < 80) {
-        throw std::runtime_error("[FT Error][MoE][GEMM Dispatch] Arch < SM80 unsupported yet for MoE GEMM");
+#ifdef ARCH_75
         dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm75>(
             A,
             B,
@@ -509,8 +510,10 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
             gemm_config,
             stream,
             occupancy);
+#endif // ARCH_75
     }
     else if (sm_ >= 80 && sm_ < 90) {
+#ifdef ARCH_80
         dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm80>(
             A,
             B,
@@ -522,6 +525,7 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
             gemm_config,
             stream,
             occupancy);
+#endif // ARCH_80
     }
     else {
         throw std::runtime_error("[FT Error][MoE][GEMM Dispatch] Arch unsupported for MoE GEMM");
