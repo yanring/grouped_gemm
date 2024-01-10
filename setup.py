@@ -23,7 +23,7 @@ _dc = f"{_dc[0]}{_dc[1]}"
 ext_modules = [
     CUDAExtension(
         "grouped_gemm_backend",
-        ["csrc/ops.cu", "csrc/grouped_gemm.cu", "csrc/sinkhorn.cu"],
+        ["csrc/ops.cu", "csrc/grouped_gemm.cu", "csrc/sinkhorn.cu", "csrc/permute.cu"],
         include_dirs = [
             f"{cwd}/third_party/cutlass/include/"
         ],
