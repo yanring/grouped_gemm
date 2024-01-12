@@ -5,6 +5,7 @@
  ************************************************************************/
 
 #include "moe/cutlass_kernels/moe_gemm/moe_gemm_forward_template.h"
+#include "moe/cutlass_kernels/moe_gemm/moe_gemm_backward_template.h"
 
 namespace groupedgemmformoe {
 template class MoeGemmRunner<half, half>;

@@ -19,7 +19,6 @@
 #include "cutlass_kernels/moe_gemm/moe_gemm_kernels.h"
 #include "cutlass_kernels/moe_gemm/moe_permute_kernels.h"
 #include "cutlass_kernels/moe_gemm/moe_gemm_utils.h"
-#include "cutlass_kernels/moe_gemm/moe_gemm_backward_template.h"
 
 using torch::Tensor;
 
