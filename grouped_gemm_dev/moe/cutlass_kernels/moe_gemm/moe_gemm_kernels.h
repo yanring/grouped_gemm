@@ -14,8 +14,8 @@
 
 namespace groupedgemmformoe {
 
-template<typename T, /*The type used for activations/scales/compute*/
-         typename WeightType /* The type for the MoE weights */>
+template<typename T,         /* The type used for activations/compute */
+         typename WeightType /* The type for weights */>
 class MoeGemmRunner {
 public:
     MoeGemmRunner()
@@ -34,6 +34,7 @@ public:
                   int64_t      gemm_k,
                   int          num_tokens,
                   int          num_experts,
+                  bool         transB,
                   cudaStream_t stream);
 
     void moe_gemm_backward(T*           A,
@@ -47,6 +48,7 @@ public:
                            cudaStream_t stream);
 
 private:
+    template<bool TransB /* Whether to transpose weights */>
     void dispatch_to_arch(T*                A,
                           WeightType*       B,
                           T*                C,
@@ -58,6 +60,7 @@ private:
                           cudaStream_t      stream,
                           int*              occupancy = nullptr);
 
+    template<bool TransB /* Whether to transpose weights */>
     void run_gemm(T*           A,
                   WeightType*  B,
                   T*           C,

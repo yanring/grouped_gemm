@@ -207,10 +207,11 @@ class TestMoe(unittest.TestCase):
 
     nvtx.range_push("forward cutlass grouped gemm")
     gemm1_output = self.moe_group_gemm_op(
-        permuted_inputs,                         \
-        inputs["expert_for_rows"],               \
-        input_dict["fc1_expert_weights_for_ft"], \
-        num_experts                              \
+        permuted_inputs,
+        inputs["expert_for_rows"],
+        input_dict["fc1_expert_weights_for_ft"],
+        num_experts,
+        False
     )
     nvtx.range_pop()
 
@@ -312,10 +313,10 @@ class TestMoe(unittest.TestCase):
     nvtx.range_push("backward cutlass grouped gemm")
     # Grouped GEMM for the case of fixed M, N and variable K
     gemm1_output = self.moe_group_gemm_backward_op(
-        inputs["permuted_inputs"],               \
-        inputs["expert_for_rows"],               \
-        input_dict["fc1_expert_weights_for_ft"], \
-        num_experts                              \
+        inputs["permuted_inputs"],
+        inputs["expert_for_rows"],
+        input_dict["fc1_expert_weights_for_ft"],
+        num_experts
     )
     nvtx.range_pop()
     nvtx.range_pop()

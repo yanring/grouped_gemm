@@ -186,6 +186,7 @@ void generic_moe_gemm_kernelLauncher(T*             A,
 
 template<typename T,
          typename WeightType,
+         bool     TransB,
          typename arch,
          typename ThreadblockShape,
          typename WarpShape,
@@ -207,7 +208,7 @@ void dispatch_gemm_config(
         case 2:
             generic_moe_gemm_kernelLauncher<T,
                                             WeightType,
-                                            false,
+                                            TransB,
                                             cutlass::arch::Sm80,
                                             ThreadblockShape,
                                             WarpShape,
@@ -224,7 +225,7 @@ void dispatch_gemm_config(
         case 3:
             generic_moe_gemm_kernelLauncher<T,
                                             WeightType,
-                                            false,
+                                            TransB,
                                             cutlass::arch::Sm80,
                                             ThreadblockShape,
                                             WarpShape,
@@ -241,7 +242,7 @@ void dispatch_gemm_config(
         case 4:
             generic_moe_gemm_kernelLauncher<T,
                                             WeightType,
-                                            false,
+                                            TransB,
                                             cutlass::arch::Sm80,
                                             ThreadblockShape,
                                             WarpShape,
@@ -272,6 +273,7 @@ void dispatch_gemm_config(
 
 template<typename T,
          typename WeightType,
+         bool     TransB,
          typename arch,
          typename ThreadblockShape,
          typename WarpShape,
@@ -294,7 +296,7 @@ void dispatch_gemm_config(
         case 2:
             generic_moe_gemm_kernelLauncher<T,
                                             WeightType,
-                                            false,
+                                            TransB,
                                             cutlass::arch::Sm80,
                                             ThreadblockShape,
                                             WarpShape,
@@ -325,6 +327,7 @@ void dispatch_gemm_config(
 
 template<typename T,
          typename WeightType,
+         bool     TransB,
          typename arch,
          typename ThreadblockShape,
          typename WarpShape,
@@ -358,6 +361,7 @@ void dispatch_gemm_config(
 // This overload is only enabled when T == WeightType.
 template<typename T,
          typename WeightType,
+         bool     TransB,
          typename arch,
          typename std::enable_if<
             !std::is_same<T, float>::value && 
@@ -375,7 +379,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 {
     switch (gemm_config.tile_config) {
         case CutlassTileConfig::CtaShape32x128x64_WarpShape32x32x64:
-            dispatch_gemm_config<T, WeightType, arch,
+            dispatch_gemm_config<T, WeightType, TransB, arch,
                                  cutlass::gemm::GemmShape<64, 128, 64>,
                                  cutlass::gemm::GemmShape<32, 32, 64>>(A,
                                                                        B,
@@ -389,7 +393,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
                                                                        occupancy);
             break;
         case CutlassTileConfig::CtaShape64x128x64_WarpShape32x64x64:
-            dispatch_gemm_config<T, WeightType, arch,
+            dispatch_gemm_config<T, WeightType, TransB, arch,
                                  cutlass::gemm::GemmShape<64, 128, 64>,
                                  cutlass::gemm::GemmShape<32, 64, 64>>(A,
                                                                        B,
@@ -403,7 +407,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
                                                                        occupancy);
             break;
         case CutlassTileConfig::CtaShape128x128x64_WarpShape64x32x64:
-            dispatch_gemm_config<T, WeightType, arch,
+            dispatch_gemm_config<T, WeightType, TransB, arch,
                                  cutlass::gemm::GemmShape<128, 128, 64>,
                                  cutlass::gemm::GemmShape<64, 32, 64>>(A,
                                                                        B,
@@ -440,6 +444,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 // This overload will handle simt gemms. It is disabled via SFINAE for tensorop.
 template<typename T,
          typename WeightType,
+         bool     TransB,
          typename arch,
          typename std::enable_if<
             std::is_same<T, float>::value &&
@@ -457,7 +462,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 {
     switch (gemm_config.tile_config) {
         case CutlassTileConfig::CtaShape128x128x8_WarpShape64x64x8:
-            dispatch_gemm_config<T, WeightType, arch,
+            dispatch_gemm_config<T, WeightType, TransB, arch,
                                  cutlass::gemm::GemmShape<128, 128, 8>,
                                  cutlass::gemm::GemmShape<64, 64, 8>>(A,
                                                                       B,
@@ -490,7 +495,9 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename T, typename WeightType>
+template<typename T,
+         typename WeightType>
+template<bool     TransB>
 void MoeGemmRunner<T, WeightType>::dispatch_to_arch(T*                A,
                                                     WeightType*       B,
                                                     T*                C,
@@ -504,44 +511,44 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch(T*                A,
 {
     if (sm_ >= 70 && sm_ < 75) {
 #ifdef ARCH_70
-        dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm70>(A,
-                                                                         B,
-                                                                         C,
-                                                                         gemm_m_per_expert,
-                                                                         gemm_n,
-                                                                         gemm_k,
-                                                                         num_experts,
-                                                                         gemm_config,
-                                                                         stream,
-                                                                         occupancy);
+        dispatch_moe_gemm_to_cutlass<T, WeightType, TransB, cutlass::arch::Sm70>(A,
+                                                                                 B,
+                                                                                 C,
+                                                                                 gemm_m_per_expert,
+                                                                                 gemm_n,
+                                                                                 gemm_k,
+                                                                                 num_experts,
+                                                                                 gemm_config,
+                                                                                 stream,
+                                                                                 occupancy);
 #endif // ARCH_70
     }
     else if (sm_ >= 75 && sm_ < 80) {
 #ifdef ARCH_75
-        dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm75>(A,
-                                                                         B,
-                                                                         C,
-                                                                         gemm_m_per_expert,
-                                                                         gemm_n,
-                                                                         gemm_k,
-                                                                         num_experts,
-                                                                         gemm_config,
-                                                                         stream,
-                                                                         occupancy);
+        dispatch_moe_gemm_to_cutlass<T, WeightType, TransB, cutlass::arch::Sm75>(A,
+                                                                                 B,
+                                                                                 C,
+                                                                                 gemm_m_per_expert,
+                                                                                 gemm_n,
+                                                                                 gemm_k,
+                                                                                 num_experts,
+                                                                                 gemm_config,
+                                                                                 stream,
+                                                                                 occupancy);
 #endif // ARCH_75
     }
     else if (sm_ >= 80 && sm_ < 90) {
 #ifdef ARCH_80
-        dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm80>(A,
-                                                                         B,
-                                                                         C,
-                                                                         gemm_m_per_expert,
-                                                                         gemm_n,
-                                                                         gemm_k,
-                                                                         num_experts,
-                                                                         gemm_config,
-                                                                         stream,
-                                                                         occupancy);
+        dispatch_moe_gemm_to_cutlass<T, WeightType, TransB, cutlass::arch::Sm80>(A,
+                                                                                 B,
+                                                                                 C,
+                                                                                 gemm_m_per_expert,
+                                                                                 gemm_n,
+                                                                                 gemm_k,
+                                                                                 num_experts,
+                                                                                 gemm_config,
+                                                                                 stream,
+                                                                                 occupancy);
 #endif // ARCH_80
     }
     else {
@@ -555,7 +562,9 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch(T*                A,
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename T, typename WeightType>
+template<typename T,
+         typename WeightType>         
+template<bool     TransB>
 void MoeGemmRunner<T, WeightType>::run_gemm(T*           A,
                                             WeightType*  B,
                                             T*           C,
@@ -572,16 +581,16 @@ void MoeGemmRunner<T, WeightType>::run_gemm(T*           A,
     std::vector<int>               occupancies(candidate_configs.size());
 
     for (size_t ii = 0; ii < candidate_configs.size(); ++ii) {
-        dispatch_to_arch(A,
-                         B,
-                         C,
-                         gemm_m_per_expert,
-                         gemm_n,
-                         gemm_k,
-                         num_experts,
-                         candidate_configs[ii],
-                         stream,
-                         &occupancies[ii]);
+        dispatch_to_arch<TransB>(A,
+                                 B,
+                                 C,
+                                 gemm_m_per_expert,
+                                 gemm_n,
+                                 gemm_k,
+                                 num_experts,
+                                 candidate_configs[ii],
+                                 stream,
+                                 &occupancies[ii]);
     }
 
     static constexpr int workspace_bytes = 0;  // No workspace for MoE GEMMs.
@@ -598,15 +607,15 @@ void MoeGemmRunner<T, WeightType>::run_gemm(T*           A,
                                                                                  multi_processor_count_,
                                                                                  is_weight_only);
 
-    dispatch_to_arch(A,
-                     B,
-                     C,
-                     gemm_m_per_expert,
-                     gemm_n,
-                     gemm_k,
-                     num_experts,
-                     chosen_config,
-                     stream);
+    dispatch_to_arch<TransB>(A,
+                             B,
+                             C,
+                             gemm_m_per_expert,
+                             gemm_n,
+                             gemm_k,
+                             num_experts,
+                             chosen_config,
+                             stream);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -624,10 +633,19 @@ void MoeGemmRunner<T, WeightType>::moe_gemm(T*           A,
                                             int64_t      gemm_k,
                                             int          num_tokens,
                                             int          num_experts,
+                                            bool         transB,
                                             cudaStream_t stream)
 {
-    run_gemm(
-        A, B, C, gemm_m_per_expert, gemm_n, gemm_k, num_tokens, num_experts, stream);
+    if (transB)
+    {
+        run_gemm<true>(
+            A, B, C, gemm_m_per_expert, gemm_n, gemm_k, num_tokens, num_experts, stream);
+    }
+    else
+    {
+        run_gemm<false>(
+            A, B, C, gemm_m_per_expert, gemm_n, gemm_k, num_tokens, num_experts, stream);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

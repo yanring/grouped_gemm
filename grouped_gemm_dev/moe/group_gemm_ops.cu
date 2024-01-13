@@ -32,13 +32,16 @@ namespace torch_ext {
 
 // act type, weight type
 template <typename T, typename WeightType>
-Tensor run_group_gemm_helper(Tensor input_activations,
-                             Tensor expert_for_rows,
-                             Tensor fc1_expert_weights,
-                             const int num_experts)
+Tensor run_group_gemm_helper(Tensor    input_activations,
+                             Tensor    expert_for_rows,
+                             Tensor    fc1_expert_weights,
+                             const int num_experts,
+                             bool      transB)
 {
     const int gemm_m = input_activations.size(0);
-    const int gemm_n = fc1_expert_weights.size(2);
+    int gemm_n;
+    if (transB) gemm_n = fc1_expert_weights.size(1);
+    else gemm_n = fc1_expert_weights.size(2);
     const int gemm_k = input_activations.size(1);
 
     if (gemm_k & 0x7 != 0)
@@ -78,6 +81,7 @@ Tensor run_group_gemm_helper(Tensor input_activations,
                               gemm_k,                // gemm_k
                               gemm_m,                // num_tokens
                               num_experts,
+                              transB,
                               stream);
 
     return fc1_output;
@@ -145,10 +149,11 @@ Tensor run_group_gemm_backward_helper(Tensor input_activations,
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-Tensor moe_group_gemm_op(Tensor input_activations,
-                         Tensor expert_for_rows,
-                         Tensor fc1_expert_weights,
-                         int64_t num_experts)
+Tensor moe_group_gemm_op(Tensor  input_activations,
+                         Tensor  expert_for_rows,
+                         Tensor  fc1_expert_weights,
+                         int64_t num_experts,
+                         bool    transB)
 {
     Tensor output_tensor;
 
@@ -160,7 +165,8 @@ Tensor moe_group_gemm_op(Tensor input_activations,
                 input_activations,
                 expert_for_rows,
                 fc1_expert_weights,
-                num_experts);
+                num_experts,
+                transB);
             break;
         }
         case at::ScalarType::Half: {
@@ -168,7 +174,8 @@ Tensor moe_group_gemm_op(Tensor input_activations,
                 input_activations,
                 expert_for_rows,
                 fc1_expert_weights,
-                num_experts);
+                num_experts,
+                transB);
             break;
         }
 #ifdef ENABLE_BF16
@@ -177,7 +184,8 @@ Tensor moe_group_gemm_op(Tensor input_activations,
                 input_activations,
                 expert_for_rows,
                 fc1_expert_weights,
-                num_experts);
+                num_experts,
+                transB);
             break;
         }
 #endif

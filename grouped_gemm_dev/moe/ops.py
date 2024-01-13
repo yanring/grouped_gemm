@@ -136,7 +136,8 @@ class GroupedGemmMoE(torch.autograd.Function):
         permuted_inputs,
         expert_for_rows,
         weights,
-        num_experts)
+        num_experts,
+        False)
       
       ctx.save_for_backward(permuted_inputs, expert_for_rows, weights)
       ctx.num_experts = num_experts
@@ -161,12 +162,12 @@ class GroupedGemmMoE(torch.autograd.Function):
 
       activation_grad = None
       if ctx.needs_input_grad[2]:
-        # TODO by Jiang Shao, add trans_b to avoid weight permutation
         activation_grad = torch.ops.moe_unit_ops.moe_group_gemm_op(
           permuted_inputs_grad,
           expert_for_rows,
-          weights.permute(0, 2, 1).contiguous(),
-          num_experts)
+          weights,
+          num_experts,
+          True)
 
       return activation_grad, None, weight_grad, None
 
