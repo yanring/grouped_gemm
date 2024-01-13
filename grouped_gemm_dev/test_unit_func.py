@@ -9,6 +9,7 @@ import unittest
 import sys
 import time
 import torch.cuda.nvtx as nvtx
+import grouped_gemm
 
 def random_cuda_tensor(shape, dtype, mean=0, std=1):
     # https://pytorch.org/docs/stable/generated/torch.Tensor.normal_.html
@@ -110,13 +111,13 @@ class TestMoe(unittest.TestCase):
     original_inputs = unpermuted_inputs.detach()
 
     for _ in range(warmup_times):
-      permuted_inputs, source_row_to_dest_row, _ = self.moe_permute_op(unpermuted_inputs, expert_for_rows, [])
+      permuted_inputs, source_row_to_dest_row, _ = self.moe_permute_op(unpermuted_inputs, expert_for_rows, [], num_rows)
 
     nvtx.range_push("permute test")
     nvtx.range_push("permute op")
     start_time = time.perf_counter()
     for _ in range(execution_times):
-      permuted_inputs, source_row_to_dest_row, _ = self.moe_permute_op(unpermuted_inputs, expert_for_rows, [])
+      permuted_inputs, source_row_to_dest_row, _ = self.moe_permute_op(unpermuted_inputs, expert_for_rows, [], num_rows)
     end_time = time.perf_counter()
     elapsed_time = (end_time - start_time) / execution_times * 1000
     nvtx.range_pop()
@@ -129,7 +130,7 @@ class TestMoe(unittest.TestCase):
     nvtx.range_push("unpermute op")
     start_time = time.perf_counter()
     for _ in range(execution_times):
-      original_output, _ = self.moe_recover_op(permuted_inputs, source_row_to_dest_row, [])
+      original_output, _ = self.moe_recover_op(permuted_inputs, source_row_to_dest_row, [], num_rows)
     end_time = time.perf_counter()
     elapsed_time = (end_time - start_time) / execution_times * 1000
     nvtx.range_pop()
@@ -189,7 +190,7 @@ class TestMoe(unittest.TestCase):
 
     nvtx.range_push("grouped gemm fwd test")
     nvtx.range_push("permute op")
-    permuted_inputs, source_row_to_dest_row, _ = self.moe_permute_op(inputs["input_activations"], inputs["expert_for_rows"], [])
+    permuted_inputs, source_row_to_dest_row, _ = self.moe_permute_op(inputs["input_activations"], inputs["expert_for_rows"], [], num_rows)
     nvtx.range_pop()
 
     if PRINT:
@@ -214,7 +215,7 @@ class TestMoe(unittest.TestCase):
     nvtx.range_pop()
 
     nvtx.range_push("unpermute op")
-    original_output, _ = self.moe_recover_op(gemm1_output, source_row_to_dest_row, [])
+    original_output, _ = self.moe_recover_op(gemm1_output, source_row_to_dest_row, [], num_rows)
     nvtx.range_pop()
     nvtx.range_pop()
 
@@ -292,7 +293,7 @@ class TestMoe(unittest.TestCase):
     nvtx.range_push("grouped gemm bwd test")
     nvtx.range_push("permute op")
     # Permutation on activations based on expert id
-    inputs["permuted_inputs"], source_row_to_dest_row, _ = self.moe_permute_op(inputs["input_activations"], inputs["expert_for_rows"], [])
+    inputs["permuted_inputs"], source_row_to_dest_row, _ = self.moe_permute_op(inputs["input_activations"], inputs["expert_for_rows"], [], num_rows)
     nvtx.range_pop()
 
     if PRINT:
@@ -413,3 +414,7 @@ def test_func():
   suite = loader.loadTestsFromTestCase(TestMoe)
   runner = unittest.TextTestRunner()
   runner.run(suite)
+
+
+if __name__ == '__main__':
+  test_func()

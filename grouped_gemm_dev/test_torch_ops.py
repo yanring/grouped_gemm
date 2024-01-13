@@ -21,6 +21,7 @@ class TestMoeOps(unittest.TestCase):
 
   def permute_ops_helper(self,
                          num_rows,
+                         max_token_num,
                          num_cols,
                          num_experts,
                          dtype,
@@ -42,10 +43,10 @@ class TestMoeOps(unittest.TestCase):
     for _ in range(execution_times):
       # Forward
       nvtx.range_push("permute op forward")
-      permuted_inputs, source_row_to_dest_row = permute(unpermuted_inputs, expert_for_rows)
+      permuted_inputs, source_row_to_dest_row = permute(unpermuted_inputs, expert_for_rows, max_token_num)
       nvtx.range_pop()
       nvtx.range_push("unpermute op forward")
-      unpermute_outputs = unpermute(permuted_inputs, expert_for_rows, source_row_to_dest_row)
+      unpermute_outputs = unpermute(permuted_inputs, expert_for_rows, source_row_to_dest_row, max_token_num)
       nvtx.range_pop()
 
       # Reset grad to avoid accumulation
@@ -179,6 +180,7 @@ class TestMoeOps(unittest.TestCase):
 
   def test_moe_permute(self):
     num_rows =        4096 * 2
+    max_token_num =   num_rows + 10
     num_cols =        2048
     num_experts =     8
     atol =            1e-5
@@ -187,11 +189,11 @@ class TestMoeOps(unittest.TestCase):
 
     print()
     dtype = torch.float32
-    self.permute_ops_helper(num_rows, num_cols, num_experts, dtype, atol, execution_times, PRINT)
+    self.permute_ops_helper(num_rows, max_token_num, num_cols, num_experts, dtype, atol, execution_times, PRINT)
     dtype = torch.float16
-    self.permute_ops_helper(num_rows, num_cols, num_experts, dtype, atol, execution_times, PRINT)
+    self.permute_ops_helper(num_rows, max_token_num, num_cols, num_experts, dtype, atol, execution_times, PRINT)
     dtype = torch.bfloat16
-    self.permute_ops_helper(num_rows, num_cols, num_experts, dtype, atol, execution_times, PRINT)
+    self.permute_ops_helper(num_rows, max_token_num, num_cols, num_experts, dtype, atol, execution_times, PRINT)
 
   def test_moe_groupedgemm(self):
     # Note that the test directly uses the forward result as the input for the backward process, 
@@ -220,3 +222,7 @@ def test_ops():
   suite = loader.loadTestsFromTestCase(TestMoeOps)
   runner = unittest.TextTestRunner()
   runner.run(suite)
+
+
+if __name__ == '__main__':
+  test_ops()

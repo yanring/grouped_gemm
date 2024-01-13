@@ -241,7 +241,8 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
 std::tuple<torch::Tensor, torch::Tensor, std::vector<Tensor>> moe_permute_op(
     Tensor original_input,
     Tensor expert_for_rows,
-    std::vector<Tensor> workspace)
+    std::vector<Tensor> workspace,
+    int64_t max_token_num)
 {
     const int num_rows = original_input.size(0);
     const int num_cols = original_input.size(1);
@@ -272,11 +273,11 @@ std::tuple<torch::Tensor, torch::Tensor, std::vector<Tensor>> moe_permute_op(
                         .dtype(torch::kInt32)
                         .device(torch::kCUDA)
                         .requires_grad(false);
-        Tensor row_id = torch::range(0, num_rows - 1, 1, options);
-        Tensor sorted_expert_for_rows = torch::empty(num_rows, options);
-        Tensor dest_row_to_source_row = torch::empty(num_rows, options);
+        Tensor row_id = torch::range(0, max_token_num - 1, 1, options);
+        Tensor sorted_expert_for_rows = torch::empty(max_token_num, options);
+        Tensor dest_row_to_source_row = torch::empty(max_token_num, options);
         Tensor permuted_output =
-            torch::empty({num_rows, num_cols}, torch::dtype(_st).device(torch::kCUDA).requires_grad(false));
+            torch::empty({max_token_num, num_cols}, torch::dtype(_st).device(torch::kCUDA).requires_grad(false));
 
         workspace.push_back(row_id);
         workspace.push_back(sorted_expert_for_rows);
@@ -288,7 +289,7 @@ std::tuple<torch::Tensor, torch::Tensor, std::vector<Tensor>> moe_permute_op(
     int *row_id_ptr = get_ptr<int>(workspace[0]);
     int *sorted_expert_for_rows_ptr = get_ptr<int>(workspace[1]);
     int *dest_row_to_source_row_ptr = get_ptr<int>(workspace[2]);
-    Tensor &permuted_output = workspace[3];
+    Tensor permuted_output = workspace[3].narrow(0, 0, num_rows);
 
     // Run sorting operation
     void *d_temp_storage = get_ptr<void>(workspace[3]);
@@ -373,7 +374,8 @@ std::tuple<torch::Tensor, torch::Tensor, std::vector<Tensor>> moe_permute_op(
 std::tuple<torch::Tensor, std::vector<Tensor>> moe_recover_op(
     Tensor permuted_input,
     Tensor source_row_to_dest_row,
-    std::vector<Tensor> workspace)
+    std::vector<Tensor> workspace,
+    int64_t max_token_num)
 {
     const int num_rows = permuted_input.size(0);
     const int num_cols = permuted_input.size(1);
@@ -396,12 +398,12 @@ std::tuple<torch::Tensor, std::vector<Tensor>> moe_recover_op(
         // printf("Permute op backward workspace initialized!\n");
 
         Tensor original_output =
-            torch::empty({num_rows, num_cols}, torch::dtype(_st).device(torch::kCUDA).requires_grad(false));
+            torch::empty({max_token_num, num_cols}, torch::dtype(_st).device(torch::kCUDA).requires_grad(false));
 
         workspace.push_back(original_output);
     }
 
-    Tensor &original_output = workspace[0];
+    Tensor original_output = workspace[0].narrow(0, 0, num_rows);
 
     int *map_source_row_to_dest_row = get_ptr<int>(source_row_to_dest_row);
     auto stream = at::cuda::getCurrentCUDAStream().stream();

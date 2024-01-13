@@ -54,7 +54,8 @@ python test_torch_ops.py
 > ```py
 > moe.ops.permute(
 >   unpermuted_inputs: torch.Tensor,
->   expert_for_rows: torch.Tensor) -> tuple
+>   expert_for_rows: torch.Tensor,
+>   max_token_num: int) -> tuple
 > ```
 
 The output tuple of `(torch.Tensor, torch.Tensor)` that contains two tensors `permuted_inputs` and `source_row_to_dest_row`.
@@ -64,12 +65,17 @@ The output tuple of `(torch.Tensor, torch.Tensor)` that contains two tensors `pe
 
 ### Parameters
 
-* **unpermuted_inputs** (torch.Tensor)
-    &emsp;&emsp;shape = [tokens_num, hidden_size]
-    &emsp;&emsp;The input activations with each row corresponds to a single expert.
-* **expert_for_rows** (torch.Tensor)
-    &emsp;&emsp;shape = [tokens_num]
-    &emsp;&emsp;The expert index for each row of activations. The `int32` type is recommended.
+* **unpermuted_inputs** (torch.Tensor)  
+    &emsp;shape = [tokens_num, hidden_size]  
+    &emsp;The input activations with each row corresponds to a single expert.
+
+* **expert_for_rows** (torch.Tensor)  
+    &emsp;shape = [tokens_num]  
+    &emsp;The expert index for each row of activations. The `int32` type is recommended.
+
+* **max_token_num** (int)  
+    &emsp;The maximum number of tokens (rows) used for workspace allocation.
+
 
 ## unpermute
 
@@ -77,22 +83,28 @@ The output tuple of `(torch.Tensor, torch.Tensor)` that contains two tensors `pe
 > moe.ops.unpermute(
 >   permuted_inputs: torch.Tensor,
 >   expert_for_rows: torch.Tensor,
->   source_row_to_dest_row: torch.Tensor) -> torch.Tensor
+>   source_row_to_dest_row: torch.Tensor,
+>   max_token_num: int) -> torch.Tensor
 > ```
 
 The mirror operator of `moe.ops.permute`.
 
 ### Parameters
 
-* **permuted_inputs** (torch.Tensor)
-    &emsp;&emsp;shape = [tokens_num, hidden_size]
-    &emsp;&emsp;The permuted activations output by `moe.ops.permute`.
-* **expert_for_rows** (torch.Tensor)
-    &emsp;&emsp;shape = [tokens_num]
-    &emsp;&emsp;The expert index for each row of original unpermuted activations. The `int32` type is recommended.
-* **source_row_to_dest_row** (torch.Tensor)
-    &emsp;&emsp;shape = [tokens_num]
-    &emsp;&emsp;The mapping table for the row indices of the original unpermuted activations before and after `moe.ops.permute`. The second output tensor of `moe.ops.permute`.
+* **permuted_inputs** (torch.Tensor)  
+    &emsp;shape = [tokens_num, hidden_size]  
+    &emsp;The permuted activations output by `moe.ops.permute`.
+
+* **expert_for_rows** (torch.Tensor)  
+    &emsp;shape = [tokens_num]  
+    &emsp;The expert index for each row of original unpermuted activations. The `int32` type is recommended.
+
+* **source_row_to_dest_row** (torch.Tensor)  
+    &emsp;shape = [tokens_num]  
+    &emsp;The mapping table for the row indices of the original unpermuted activations before and after `moe.ops.permute`. The second output tensor of `moe.ops.permute`.
+
+* **max_token_num** (int)  
+    &emsp;The maximum number of tokens (rows) used for workspace allocation.
 
 ### Example
 
@@ -131,24 +143,24 @@ print(unpermute_outputs)
 >   permuted_inputs: torch.Tensor,
 >   expert_for_rows: torch.Tensor,
 >   weights: torch.Tensor,
->   num_experts: int64) -> torch.Tensor
+>   num_experts: int) -> torch.Tensor
 > ```
 
 Matrix product of two tensors `permuted_inputs` and `weights` for each expert.
 
 ### Parameters
 
-* **permuted_inputs** (torch.Tensor)
-    &emsp;&emsp;shape = [tokens_num, hidden_size]
-    &emsp;&emsp;The permuted input activations with each row sorted according to expert id via `moe.ops.permute`.
+* **permuted_inputs** (torch.Tensor)  
+    &emsp;shape = [tokens_num, hidden_size]  
+    &emsp;The permuted input activations with each row sorted according to expert id via `moe.ops.permute`.
 
-* **expert_for_rows** (torch.Tensor)
-    &emsp;&emsp;shape = [tokens_num]
-    &emsp;&emsp;The expert index for each row of original unpermuted activations. The `int32` type is recommended.
+* **expert_for_rows** (torch.Tensor)  
+    &emsp;shape = [tokens_num]  
+    &emsp;The expert index for each row of original unpermuted activations. The `int32` type is recommended.
 
-* **weights** (torch.Tensor)
-    &emsp;&emsp;shape = [experts_num, hidden_size, inter_size]
-    &emsp;&emsp;Weight matrices for each expert.
+* **weights** (torch.Tensor)  
+    &emsp;shape = [experts_num, hidden_size, inter_size]  
+    &emsp;Weight matrices for each expert.
 
-* **num_experts** (int64)
-    &emsp;&emsp;Number of experts.
+* **num_experts** (int)  
+    &emsp;Number of experts.
