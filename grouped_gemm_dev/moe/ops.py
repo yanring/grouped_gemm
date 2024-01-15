@@ -185,3 +185,6 @@ def unpermute(permuted_inputs, expert_for_rows, source_row_to_dest_row, max_toke
 
 def groupedgemm(permuted_inputs, expert_for_rows, weights, num_experts):
   return GroupedGemmMoE.apply(permuted_inputs, expert_for_rows, weights, num_experts)
+
+def sinkhorn_kernel(cost, tol=0.0001):
+    return torch.ops.moe_unit_ops.sinkhorn(cost, tol)

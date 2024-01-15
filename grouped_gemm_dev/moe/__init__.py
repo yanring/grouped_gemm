@@ -1,5 +1,5 @@
-from .ops import permute, unpermute, groupedgemm
+from .ops import permute, unpermute, groupedgemm, sinkhorn_kernel
 
 __all__ = [
-    'permute', 'unpermute', 'groupedgemm',
+    'permute', 'unpermute', 'groupedgemm', 'sinkhorn_kernel'
 ]

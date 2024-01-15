@@ -96,11 +96,11 @@ if use_jiangs_code:
 
     setup(
         name="grouped_gemm",
-        version="0.0.1",
+        version="0.5",
         author="Jiang Shao, Shiqing Fan",
         author_email="jiangs@nvidia.com, shiqingf@nvidia.com",
-        description="GEMM Grouped",
-        url="https://github.com/fanshiqing/grouped_gemm",
+        description="GroupedGEMM CUDA Extension of Pytorch for MoE",
+        url="https://github.com/fanshiqing/grouped_gemm@releases/nv_grouped_gemm_v0.5",
         classifiers=[
             "Programming Language :: Python :: 3",
             "License :: OSI Approved :: BSD License",

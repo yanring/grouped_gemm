@@ -98,7 +98,7 @@ endif()
 
 add_subdirectory(moe/cutlass_kernels)
 
-set(moe_test_files moe/group_gemm_ops.cu)
+set(moe_test_files moe/group_gemm_ops.cu moe/sinkhorn.cu)
 
 set(LIB_NAME "moe_unit_ops")
 add_library(${LIB_NAME} SHARED ${moe_test_files})

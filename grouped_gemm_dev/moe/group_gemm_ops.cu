@@ -15,6 +15,7 @@
 
 #include "ATen/cuda/CUDAContext.h"
 
+#include "sinkhorn.h"
 #include "cutlass_kernels/th_utils.h"
 #include "cutlass_kernels/moe_gemm/moe_gemm_kernels.h"
 #include "cutlass_kernels/moe_gemm/moe_permute_kernels.h"
@@ -495,6 +496,8 @@ TORCH_LIBRARY(moe_unit_ops, m)
     m.def("moe_group_gemm_backward_op", moe_group_gemm_backward_op);
     m.def("moe_permute_op", moe_permute_op);
     m.def("moe_recover_op", moe_recover_op);
+    // TODO: find a more reasonable repo to place this kernel.
+    m.def("sinkhorn", sinkhorn);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

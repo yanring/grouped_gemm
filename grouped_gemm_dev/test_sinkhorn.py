@@ -1,8 +1,12 @@
+# Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# See LICENSE for license information.
+
 import unittest
 import itertools
 
 from absl.testing import parameterized
-from grouped_gemm import ops, ops_test
+from grouped_gemm import sinkhorn_kernel
 import numpy as np
 import torch
 
@@ -53,7 +57,7 @@ class OpsTest(parameterized.TestCase):
         baseline_time = start.elapsed_time(end)
 
         start.record()
-        out = ops.sinkhorn_kernel(cost, tol)
+        out = sinkhorn_kernel(cost, tol)
         end.record()
         torch.cuda.synchronize()
         kernel_time = start.elapsed_time(end)
