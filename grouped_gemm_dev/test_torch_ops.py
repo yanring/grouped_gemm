@@ -92,6 +92,9 @@ class TestMoeOps(unittest.TestCase):
     rand_std = 0.02
 
     expert_for_rows = torch.randint(size=(num_rows,),low=0,high=num_experts, dtype=torch.int32).cuda()
+    tokens_per_expert = torch.bincount(expert_for_rows, minlength=num_experts)
+    tokens_per_expert = tokens_per_expert.to(torch.int32)
+
     permuted_inputs = torch.empty([num_rows, hidden_size], dtype=dtype, device="cuda").normal_(rand_mean, rand_std)
     weights = torch.empty([num_experts, hidden_size, inter_size], dtype=dtype, device="cuda").normal_(rand_mean, rand_std)    
     permuted_inputs.requires_grad_(True)
@@ -101,7 +104,7 @@ class TestMoeOps(unittest.TestCase):
     for _ in range(execution_times):
       # Forward
       nvtx.range_push("grouped gemm op forward")
-      gemm_output = groupedgemm(permuted_inputs, expert_for_rows, weights, num_experts)
+      gemm_output = groupedgemm(permuted_inputs, weights, tokens_per_expert, num_experts)
       nvtx.range_pop()
 
       # Reset grad to avoid accumulation
@@ -118,13 +121,12 @@ class TestMoeOps(unittest.TestCase):
     weight_grad_ref_list = []
     activation_grad_ref_list = []
 
-    rows_per_expert = torch.bincount(expert_for_rows, minlength=num_experts)
-    rows_idx_for_expert = torch.cumsum(rows_per_expert, dim=0)
+    rows_idx_for_expert = torch.cumsum(tokens_per_expert, dim=0)
     rows_idx_for_expert = torch.cat((torch.tensor([0]).cuda(), rows_idx_for_expert[:-1]))
 
     for expert_id in range(num_experts):
       row_start_id = rows_idx_for_expert[expert_id]
-      row_end_id = row_start_id + rows_per_expert[expert_id]
+      row_end_id = row_start_id + tokens_per_expert[expert_id]
 
       activations_expert = permuted_inputs[row_start_id:row_end_id].detach()
       weights_expert = weights[expert_id].detach()

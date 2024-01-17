@@ -131,15 +131,15 @@ class UnpermuteMoE(torch.autograd.Function):
 class GroupedGemmMoE(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, permuted_inputs, expert_for_rows, weights, num_experts):
+    def forward(ctx, permuted_inputs, weights, tokens_per_expert, num_experts):
       output = torch.ops.moe_unit_ops.moe_group_gemm_op(
         permuted_inputs,
-        expert_for_rows,
         weights,
+        tokens_per_expert,
         num_experts,
         False)
       
-      ctx.save_for_backward(permuted_inputs, expert_for_rows, weights)
+      ctx.save_for_backward(permuted_inputs, tokens_per_expert, weights)
       ctx.num_experts = num_experts
 
       return output
@@ -148,7 +148,7 @@ class GroupedGemmMoE(torch.autograd.Function):
     @staticmethod
     def backward(ctx, permuted_inputs_grad):
         
-      permuted_inputs, expert_for_rows, weights = ctx.saved_tensors
+      permuted_inputs, tokens_per_expert, weights = ctx.saved_tensors
       num_experts = ctx.num_experts
       permuted_inputs_grad = permuted_inputs_grad.contiguous()
 
@@ -156,20 +156,20 @@ class GroupedGemmMoE(torch.autograd.Function):
       if ctx.needs_input_grad[0]:
         weight_grad = torch.ops.moe_unit_ops.moe_group_gemm_backward_op(
           permuted_inputs,
-          expert_for_rows,
           permuted_inputs_grad,
+          tokens_per_expert,
           num_experts)
 
       activation_grad = None
-      if ctx.needs_input_grad[2]:
+      if ctx.needs_input_grad[1]:
         activation_grad = torch.ops.moe_unit_ops.moe_group_gemm_op(
           permuted_inputs_grad,
-          expert_for_rows,
           weights,
+          tokens_per_expert,
           num_experts,
           True)
 
-      return activation_grad, None, weight_grad, None
+      return activation_grad, weight_grad, None, None
 
 ################################################################################################
 ##
@@ -183,8 +183,8 @@ def permute(unpermuted_inputs, expert_for_rows, max_token_num):
 def unpermute(permuted_inputs, expert_for_rows, source_row_to_dest_row, max_token_num):
   return UnpermuteMoE.apply(permuted_inputs, expert_for_rows, source_row_to_dest_row, max_token_num)
 
-def groupedgemm(permuted_inputs, expert_for_rows, weights, num_experts):
-  return GroupedGemmMoE.apply(permuted_inputs, expert_for_rows, weights, num_experts)
+def groupedgemm(permuted_inputs, weights, tokens_per_expert, num_experts):
+  return GroupedGemmMoE.apply(permuted_inputs, weights, tokens_per_expert, num_experts)
 
 def sinkhorn_kernel(cost, tol=0.0001):
     return torch.ops.moe_unit_ops.sinkhorn(cost, tol)

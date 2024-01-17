@@ -205,11 +205,15 @@ class TestMoe(unittest.TestCase):
 
     ref_gemm1_output = self.run_ref_moe_shao(input_dict)
 
+    rows_per_expert = torch.bincount(inputs["expert_for_rows"], minlength=num_experts)
+    # Cast from int64 to int32 to meet the kernel's requirement.
+    rows_per_expert = rows_per_expert.to(torch.int32)
+
     nvtx.range_push("forward cutlass grouped gemm")
     gemm1_output = self.moe_group_gemm_op(
         permuted_inputs,
-        inputs["expert_for_rows"],
         input_dict["fc1_expert_weights_for_ft"],
+        rows_per_expert,
         num_experts,
         False
     )
@@ -309,13 +313,16 @@ class TestMoe(unittest.TestCase):
 
     ref_gemm1_output = self.run_ref_moe_shao(input_dict, backward=True)
 
+    rows_per_expert = torch.bincount(inputs["expert_for_rows"], minlength=num_experts)
+    # Cast from int64 to int32 to meet the kernel's requirement.
+    rows_per_expert = rows_per_expert.to(torch.int32)
 
     nvtx.range_push("backward cutlass grouped gemm")
     # Grouped GEMM for the case of fixed M, N and variable K
     gemm1_output = self.moe_group_gemm_backward_op(
         inputs["permuted_inputs"],
-        inputs["expert_for_rows"],
         input_dict["fc1_expert_weights_for_ft"],
+        rows_per_expert,
         num_experts
     )
     nvtx.range_pop()

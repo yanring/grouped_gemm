@@ -34,8 +34,8 @@ namespace torch_ext {
 // act type, weight type
 template <typename T, typename WeightType>
 Tensor run_group_gemm_helper(Tensor    input_activations,
-                             Tensor    expert_for_rows,
                              Tensor    fc1_expert_weights,
+                             Tensor    tokens_per_expert,
                              const int num_experts,
                              bool      transB)
 {
@@ -52,16 +52,7 @@ Tensor run_group_gemm_helper(Tensor    input_activations,
 
     auto stream = at::cuda::getCurrentCUDAStream().stream();
 
-    Tensor tokens_per_expert =
-        torch::empty(num_experts, torch::dtype(torch::kInt32).device(torch::kCUDA).requires_grad(false));
     int *tokens_per_expert_ptr = get_ptr<int>(tokens_per_expert);
-
-    compute_rows_for_expert(
-        expert_for_rows,
-        tokens_per_expert_ptr,
-        gemm_m,
-        num_experts,
-        stream);
 
     T *input_act_ptr = get_ptr<T>(input_activations);
     // int64_t *total_rows_before_expert_ptr = get_ptr<int64_t>(total_rows_before_expert);
@@ -91,8 +82,8 @@ Tensor run_group_gemm_helper(Tensor    input_activations,
 // act type, weight type
 template <typename T, typename WeightType>
 Tensor run_group_gemm_backward_helper(Tensor input_activations,
-                                      Tensor expert_for_rows,
                                       Tensor fc1_expert_weights,
+                                      Tensor tokens_per_expert,
                                       const int num_experts)
 {
     // Matrix A: X      shape(m, k)
@@ -110,16 +101,8 @@ Tensor run_group_gemm_backward_helper(Tensor input_activations,
 
     auto stream = at::cuda::getCurrentCUDAStream().stream();
 
-    Tensor tokens_per_expert =
-        torch::empty(num_experts, torch::dtype(torch::kInt32).device(torch::kCUDA).requires_grad(false));
-    int *tokens_per_expert_ptr = get_ptr<int>(tokens_per_expert);
 
-    compute_rows_for_expert(
-        expert_for_rows,
-        tokens_per_expert_ptr,
-        gemm_k,
-        num_experts,
-        stream);
+    int *tokens_per_expert_ptr = get_ptr<int>(tokens_per_expert);
 
     T *input_act_ptr = get_ptr<T>(input_activations);
     WeightType *fc1_expert_weights_ptr = get_ptr<WeightType>(fc1_expert_weights);
@@ -151,8 +134,8 @@ Tensor run_group_gemm_backward_helper(Tensor input_activations,
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 Tensor moe_group_gemm_op(Tensor  input_activations,
-                         Tensor  expert_for_rows,
                          Tensor  fc1_expert_weights,
+                         Tensor  tokens_per_expert,
                          int64_t num_experts,
                          bool    transB)
 {
@@ -164,8 +147,8 @@ Tensor moe_group_gemm_op(Tensor  input_activations,
         case at::ScalarType::Float: {
             output_tensor = run_group_gemm_helper<float, float>(
                 input_activations,
-                expert_for_rows,
                 fc1_expert_weights,
+                tokens_per_expert,
                 num_experts,
                 transB);
             break;
@@ -173,8 +156,8 @@ Tensor moe_group_gemm_op(Tensor  input_activations,
         case at::ScalarType::Half: {
             output_tensor = run_group_gemm_helper<half, half>(
                 input_activations,
-                expert_for_rows,
                 fc1_expert_weights,
+                tokens_per_expert,
                 num_experts,
                 transB);
             break;
@@ -183,8 +166,8 @@ Tensor moe_group_gemm_op(Tensor  input_activations,
         case at::ScalarType::BFloat16: {
             output_tensor = run_group_gemm_helper<__nv_bfloat16, __nv_bfloat16>(
                 input_activations,
-                expert_for_rows,
                 fc1_expert_weights,
+                tokens_per_expert,
                 num_experts,
                 transB);
             break;
@@ -197,8 +180,8 @@ Tensor moe_group_gemm_op(Tensor  input_activations,
 }
 
 Tensor moe_group_gemm_backward_op(Tensor input_activations,
-                                  Tensor expert_for_rows,
                                   Tensor fc1_expert_weights,
+                                  Tensor tokens_per_expert,
                                   int64_t num_experts)
 {
     Tensor output_tensor;
@@ -209,8 +192,8 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
         case at::ScalarType::Float: {
             output_tensor = run_group_gemm_backward_helper<float, float>(
                 input_activations,
-                expert_for_rows,
                 fc1_expert_weights,
+                tokens_per_expert,
                 num_experts);
 
             break;
@@ -218,8 +201,8 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
         case at::ScalarType::Half: {
             output_tensor = run_group_gemm_backward_helper<half, half>(
                 input_activations,
-                expert_for_rows,
                 fc1_expert_weights,
+                tokens_per_expert,
                 num_experts);
             
             break;
@@ -228,8 +211,8 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
         case at::ScalarType::BFloat16: {
             output_tensor = run_group_gemm_backward_helper<__nv_bfloat16, __nv_bfloat16>(
                 input_activations,
-                expert_for_rows,
                 fc1_expert_weights,
+                tokens_per_expert,
                 num_experts);
 
             break;
