@@ -11,6 +11,9 @@ import time
 import torch.cuda.nvtx as nvtx
 import grouped_gemm
 
+# For local debug
+# torch.classes.load_library("./build/libmoe_unit_ops.so")
+
 def random_cuda_tensor(shape, dtype, mean=0, std=1):
     # https://pytorch.org/docs/stable/generated/torch.Tensor.normal_.html
     # torch.Tensor.normal_
@@ -66,7 +69,6 @@ def basic_moe_fc_backward(activations, expert_for_row, weights):
 class TestMoe(unittest.TestCase):
 
   def setUp(self) -> None:
-    # torch.classes.load_library("./build/libmoe_unit_ops.so")
     torch.manual_seed(734876213)
     self.moe_group_gemm_op = torch.ops.moe_unit_ops.moe_group_gemm_op
     self.moe_group_gemm_backward_op = torch.ops.moe_unit_ops.moe_group_gemm_backward_op
@@ -214,7 +216,6 @@ class TestMoe(unittest.TestCase):
         permuted_inputs,
         input_dict["fc1_expert_weights_for_ft"],
         rows_per_expert,
-        num_experts,
         False
     )
     nvtx.range_pop()
@@ -322,9 +323,7 @@ class TestMoe(unittest.TestCase):
     gemm1_output = self.moe_group_gemm_backward_op(
         inputs["permuted_inputs"],
         input_dict["fc1_expert_weights_for_ft"],
-        rows_per_expert,
-        num_experts
-    )
+        rows_per_expert)
     nvtx.range_pop()
     nvtx.range_pop()
 

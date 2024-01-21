@@ -141,9 +141,8 @@ print(unpermute_outputs)
 > ```py
 > moe.ops.groupedgemm(
 >   permuted_inputs: torch.Tensor,
->   expert_for_rows: torch.Tensor,
 >   weights: torch.Tensor,
->   num_experts: int) -> torch.Tensor
+>   tokens_per_expert: torch.Tensor) -> torch.Tensor
 > ```
 
 Matrix product of two tensors `permuted_inputs` and `weights` for each expert.
@@ -154,13 +153,10 @@ Matrix product of two tensors `permuted_inputs` and `weights` for each expert.
     &emsp;shape = [tokens_num, hidden_size]  
     &emsp;The permuted input activations with each row sorted according to expert id via `moe.ops.permute`.
 
-* **expert_for_rows** (torch.Tensor)  
-    &emsp;shape = [tokens_num]  
-    &emsp;The expert index for each row of original unpermuted activations. The `int32` type is recommended.
-
 * **weights** (torch.Tensor)  
     &emsp;shape = [experts_num, hidden_size, inter_size]  
     &emsp;Weight matrices for each expert.
 
-* **num_experts** (int)  
-    &emsp;Number of experts.
+* **tokens_per_expert** (torch.Tensor)  
+    &emsp;shape = [num_experts]  
+    &emsp;The number of tokens for each expert. The `int32` type is recommended.

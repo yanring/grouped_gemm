@@ -36,7 +36,6 @@ template <typename T, typename WeightType>
 Tensor run_group_gemm_helper(Tensor    input_activations,
                              Tensor    fc1_expert_weights,
                              Tensor    tokens_per_expert,
-                             const int num_experts,
                              bool      transB)
 {
     const int gemm_m = input_activations.size(0);
@@ -44,6 +43,7 @@ Tensor run_group_gemm_helper(Tensor    input_activations,
     if (transB) gemm_n = fc1_expert_weights.size(1);
     else gemm_n = fc1_expert_weights.size(2);
     const int gemm_k = input_activations.size(1);
+    const int num_experts = tokens_per_expert.size(0);
 
     if (gemm_k & 0x7 != 0)
     {
@@ -83,8 +83,7 @@ Tensor run_group_gemm_helper(Tensor    input_activations,
 template <typename T, typename WeightType>
 Tensor run_group_gemm_backward_helper(Tensor input_activations,
                                       Tensor fc1_expert_weights,
-                                      Tensor tokens_per_expert,
-                                      const int num_experts)
+                                      Tensor tokens_per_expert)
 {
     // Matrix A: X      shape(m, k)
     // Matrix B: dL/dY  shape(m, n)
@@ -93,6 +92,7 @@ Tensor run_group_gemm_backward_helper(Tensor input_activations,
     const int gemm_m = input_activations.size(1);
     const int gemm_n = fc1_expert_weights.size(1);
     const int gemm_k = input_activations.size(0);
+    const int num_experts = tokens_per_expert.size(0);
 
     if ((gemm_m & 0x7 != 0) || (gemm_n & 0x7 != 0))
     {
@@ -136,7 +136,6 @@ Tensor run_group_gemm_backward_helper(Tensor input_activations,
 Tensor moe_group_gemm_op(Tensor  input_activations,
                          Tensor  fc1_expert_weights,
                          Tensor  tokens_per_expert,
-                         int64_t num_experts,
                          bool    transB)
 {
     Tensor output_tensor;
@@ -149,7 +148,6 @@ Tensor moe_group_gemm_op(Tensor  input_activations,
                 input_activations,
                 fc1_expert_weights,
                 tokens_per_expert,
-                num_experts,
                 transB);
             break;
         }
@@ -158,7 +156,6 @@ Tensor moe_group_gemm_op(Tensor  input_activations,
                 input_activations,
                 fc1_expert_weights,
                 tokens_per_expert,
-                num_experts,
                 transB);
             break;
         }
@@ -168,7 +165,6 @@ Tensor moe_group_gemm_op(Tensor  input_activations,
                 input_activations,
                 fc1_expert_weights,
                 tokens_per_expert,
-                num_experts,
                 transB);
             break;
         }
@@ -181,8 +177,7 @@ Tensor moe_group_gemm_op(Tensor  input_activations,
 
 Tensor moe_group_gemm_backward_op(Tensor input_activations,
                                   Tensor fc1_expert_weights,
-                                  Tensor tokens_per_expert,
-                                  int64_t num_experts)
+                                  Tensor tokens_per_expert)
 {
     Tensor output_tensor;
 
@@ -193,8 +188,7 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
             output_tensor = run_group_gemm_backward_helper<float, float>(
                 input_activations,
                 fc1_expert_weights,
-                tokens_per_expert,
-                num_experts);
+                tokens_per_expert);
 
             break;
         }
@@ -202,8 +196,7 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
             output_tensor = run_group_gemm_backward_helper<half, half>(
                 input_activations,
                 fc1_expert_weights,
-                tokens_per_expert,
-                num_experts);
+                tokens_per_expert);
             
             break;
         }
@@ -212,8 +205,7 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
             output_tensor = run_group_gemm_backward_helper<__nv_bfloat16, __nv_bfloat16>(
                 input_activations,
                 fc1_expert_weights,
-                tokens_per_expert,
-                num_experts);
+                tokens_per_expert);
 
             break;
         }

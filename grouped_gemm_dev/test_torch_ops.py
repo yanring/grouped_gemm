@@ -8,6 +8,9 @@ import torch.cuda.nvtx as nvtx
 
 from grouped_gemm import permute, unpermute, groupedgemm
 
+# For local debug
+# from moe.ops import permute, unpermute, groupedgemm
+
 class TestMoeOps(unittest.TestCase):
 
   def setUp(self) -> None:
@@ -42,9 +45,16 @@ class TestMoeOps(unittest.TestCase):
     # Build network
     for _ in range(execution_times):
       # Forward
+      # shape mismatch test
+      # expert_for_rows = torch.nn.functional.pad(expert_for_rows, [0, 1])
+
       nvtx.range_push("permute op forward")
       permuted_inputs, source_row_to_dest_row = permute(unpermuted_inputs, expert_for_rows, max_token_num)
       nvtx.range_pop()
+
+      # shape mismatch test
+      # expert_for_rows = torch.nn.functional.pad(expert_for_rows, [0, 1])
+      
       nvtx.range_push("unpermute op forward")
       unpermute_outputs = unpermute(permuted_inputs, expert_for_rows, source_row_to_dest_row, max_token_num)
       nvtx.range_pop()
@@ -104,7 +114,11 @@ class TestMoeOps(unittest.TestCase):
     for _ in range(execution_times):
       # Forward
       nvtx.range_push("grouped gemm op forward")
-      gemm_output = groupedgemm(permuted_inputs, weights, tokens_per_expert, num_experts)
+      
+      # shape mismatch test
+      # weights = torch.nn.functional.pad(weights, [0, 0, 0, 1])
+
+      gemm_output = groupedgemm(permuted_inputs, weights, tokens_per_expert)
       nvtx.range_pop()
 
       # Reset grad to avoid accumulation
