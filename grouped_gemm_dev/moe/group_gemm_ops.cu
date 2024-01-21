@@ -83,7 +83,8 @@ Tensor run_group_gemm_helper(Tensor    input_activations,
 template <typename T, typename WeightType>
 Tensor run_group_gemm_backward_helper(Tensor input_activations,
                                       Tensor fc1_expert_weights,
-                                      Tensor tokens_per_expert)
+                                      Tensor tokens_per_expert,
+                                      bool   transC)
 {
     // Matrix A: X      shape(m, k)
     // Matrix B: dL/dY  shape(m, n)
@@ -108,8 +109,15 @@ Tensor run_group_gemm_backward_helper(Tensor input_activations,
     WeightType *fc1_expert_weights_ptr = get_ptr<WeightType>(fc1_expert_weights);
 
     const at::ScalarType _st = input_activations.scalar_type();
-    auto fc1_output =
-        torch::empty({num_experts, gemm_m, gemm_n}, torch::dtype(_st).device(torch::kCUDA).requires_grad(false));
+    Tensor fc1_output;
+    if (transC)
+    {
+        fc1_output = torch::empty({num_experts, gemm_n, gemm_m}, torch::dtype(_st).device(torch::kCUDA).requires_grad(false));
+    }
+    else
+    {
+        fc1_output = torch::empty({num_experts, gemm_m, gemm_n}, torch::dtype(_st).device(torch::kCUDA).requires_grad(false));
+    }
     T *fc1_output_ptr = get_ptr<T>(fc1_output);
 
     groupedgemmformoe::MoeGemmRunner<T, WeightType> moe_gemm_runner_;
@@ -122,6 +130,7 @@ Tensor run_group_gemm_backward_helper(Tensor input_activations,
                                        tokens_per_expert_ptr, // gemm_k
                                        gemm_k,                // num_tokens
                                        num_experts,
+                                       transC,
                                        stream);
 
     return fc1_output;
@@ -177,7 +186,8 @@ Tensor moe_group_gemm_op(Tensor  input_activations,
 
 Tensor moe_group_gemm_backward_op(Tensor input_activations,
                                   Tensor fc1_expert_weights,
-                                  Tensor tokens_per_expert)
+                                  Tensor tokens_per_expert,
+                                  bool   transC)
 {
     Tensor output_tensor;
 
@@ -188,7 +198,8 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
             output_tensor = run_group_gemm_backward_helper<float, float>(
                 input_activations,
                 fc1_expert_weights,
-                tokens_per_expert);
+                tokens_per_expert,
+                transC);
 
             break;
         }
@@ -196,8 +207,9 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
             output_tensor = run_group_gemm_backward_helper<half, half>(
                 input_activations,
                 fc1_expert_weights,
-                tokens_per_expert);
-            
+                tokens_per_expert,
+                transC);
+
             break;
         }
 #ifdef ENABLE_BF16
@@ -205,7 +217,8 @@ Tensor moe_group_gemm_backward_op(Tensor input_activations,
             output_tensor = run_group_gemm_backward_helper<__nv_bfloat16, __nv_bfloat16>(
                 input_activations,
                 fc1_expert_weights,
-                tokens_per_expert);
+                tokens_per_expert,
+                transC);
 
             break;
         }

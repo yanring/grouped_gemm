@@ -323,7 +323,8 @@ class TestMoe(unittest.TestCase):
     gemm1_output = self.moe_group_gemm_backward_op(
         inputs["permuted_inputs"],
         input_dict["fc1_expert_weights_for_ft"],
-        rows_per_expert)
+        rows_per_expert,
+        False)
     nvtx.range_pop()
     nvtx.range_pop()
 

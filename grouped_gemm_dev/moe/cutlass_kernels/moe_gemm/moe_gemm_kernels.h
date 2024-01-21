@@ -45,6 +45,7 @@ public:
                            int*         gemm_k_per_expert,
                            int          num_tokens,
                            int          num_experts,
+                           bool         transC,
                            cudaStream_t stream);
 
 private:
@@ -71,6 +72,7 @@ private:
                   int          num_experts,
                   cudaStream_t stream);
 
+    template<bool TransC /* Whether to transpose outputs */>
     void dispatch_to_arch_backward(T*                A,
                                    WeightType*       B,
                                    T*                C,
@@ -82,6 +84,7 @@ private:
                                    cudaStream_t      stream,
                                    int*              occupancy = nullptr);
 
+    template<bool TransC /* Whether to transpose outputs */>
     void run_gemm_backward(T*           A,
                            WeightType*  B,
                            T*           C,

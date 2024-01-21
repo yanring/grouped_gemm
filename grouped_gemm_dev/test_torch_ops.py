@@ -93,6 +93,7 @@ class TestMoeOps(unittest.TestCase):
                              hidden_size,
                              inter_size,
                              num_experts,
+                             transB,
                              dtype,
                              atol,
                              execution_times,
@@ -106,7 +107,11 @@ class TestMoeOps(unittest.TestCase):
     tokens_per_expert = tokens_per_expert.to(torch.int32)
 
     permuted_inputs = torch.empty([num_rows, hidden_size], dtype=dtype, device="cuda").normal_(rand_mean, rand_std)
-    weights = torch.empty([num_experts, hidden_size, inter_size], dtype=dtype, device="cuda").normal_(rand_mean, rand_std)    
+    if not transB:
+      weights = torch.empty([num_experts, hidden_size, inter_size], dtype=dtype, device="cuda").normal_(rand_mean, rand_std)    
+    else:
+      weights = torch.empty([num_experts, inter_size, hidden_size], dtype=dtype, device="cuda").normal_(rand_mean, rand_std)    
+    
     permuted_inputs.requires_grad_(True)
     weights.requires_grad_(True)
 
@@ -118,7 +123,7 @@ class TestMoeOps(unittest.TestCase):
       # shape mismatch test
       # weights = torch.nn.functional.pad(weights, [0, 0, 0, 1])
 
-      gemm_output = groupedgemm(permuted_inputs, weights, tokens_per_expert)
+      gemm_output = groupedgemm(permuted_inputs, weights, tokens_per_expert, transB)
       nvtx.range_pop()
 
       # Reset grad to avoid accumulation
@@ -144,6 +149,8 @@ class TestMoeOps(unittest.TestCase):
 
       activations_expert = permuted_inputs[row_start_id:row_end_id].detach()
       weights_expert = weights[expert_id].detach()
+      if transB:
+        weights_expert = weights_expert.T
       activations_expert.requires_grad_(True)
       weights_expert.requires_grad_(True)
       
@@ -151,7 +158,10 @@ class TestMoeOps(unittest.TestCase):
       gemm_output_ref.backward(gemm_output_ref.detach())
 
       gemm_output_ref_list.append(gemm_output_ref)
-      weight_grad_ref_list.append(weights_expert.grad.unsqueeze(0))
+      weights_expert_grad = weights_expert.grad
+      if transB:
+        weights_expert_grad = weights_expert_grad.T
+      weight_grad_ref_list.append(weights_expert_grad.unsqueeze(0))
       activation_grad_ref_list.append(activations_expert.grad)
 
     gemm_output_ref = torch.cat(gemm_output_ref_list, dim=0)
@@ -225,13 +235,15 @@ class TestMoeOps(unittest.TestCase):
     PRINT =           False
 
     print()
+    transB = False
     dtype = torch.float32
-    self.groupedgemm_ops_helper(num_rows, hidden_size, inter_size, num_experts, dtype, atol, execution_times, PRINT)
+    self.groupedgemm_ops_helper(num_rows, hidden_size, inter_size, num_experts, transB, dtype, atol, execution_times, PRINT)
     dtype = torch.float16
-    self.groupedgemm_ops_helper(num_rows, hidden_size, inter_size, num_experts, dtype, atol, execution_times, PRINT)
+    self.groupedgemm_ops_helper(num_rows, hidden_size, inter_size, num_experts, transB, dtype, atol, execution_times, PRINT)
     dtype = torch.bfloat16
-    self.groupedgemm_ops_helper(num_rows, hidden_size, inter_size, num_experts, dtype, atol, execution_times, PRINT)
-
+    self.groupedgemm_ops_helper(num_rows, hidden_size, inter_size, num_experts, transB, dtype, atol, execution_times, PRINT)
+    transB = True
+    self.groupedgemm_ops_helper(num_rows, hidden_size, inter_size, num_experts, transB, dtype, atol, execution_times, PRINT)
 
 def test_ops():
   loader = unittest.TestLoader()

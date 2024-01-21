@@ -75,7 +75,6 @@ void generic_moe_gemm_kernelLauncher(T*             A,
                                                                     ElementAccumulator,
                                                                     cutlass::epilogue::thread::ScaleType::Default>;
     using LayoutA = cutlass::layout::RowMajor;
-    // using LayoutB = cutlass::layout::RowMajor;
     using LayoutB = typename cutlass::platform::conditional<TransB, cutlass::layout::ColumnMajor, cutlass::layout::RowMajor>::type;
     using LayoutC = cutlass::layout::RowMajor;
     using ElementA = ElementType;

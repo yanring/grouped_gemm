@@ -29,6 +29,7 @@ namespace groupedgemmformoe {
 
 template<typename T,
          typename WeightType,
+         bool     TransC,
          typename arch,
          typename ThreadblockShape,
          typename WarpShape,
@@ -76,7 +77,7 @@ void generic_moe_gemm_backward_kernelLauncher(
                                                                     cutlass::epilogue::thread::ScaleType::Default>;
     using LayoutA = cutlass::layout::ColumnMajor;
     using LayoutB = cutlass::layout::RowMajor;
-    using LayoutC = cutlass::layout::RowMajor;
+    using LayoutC = typename cutlass::platform::conditional<TransC, cutlass::layout::ColumnMajor, cutlass::layout::RowMajor>::type;
     using ElementA = ElementType;
     using ElementB = CutlassWeightType;
     using ElementC = ElementType;
@@ -185,6 +186,7 @@ void generic_moe_gemm_backward_kernelLauncher(
 
 template <typename T,
           typename WeightType,
+          bool     TransC,
           typename arch,
           typename ThreadblockShape,
           typename WarpShape,
@@ -204,7 +206,7 @@ void dispatch_gemm_config(
 {
     switch (gemm_config.stages) {
         case 2:
-            generic_moe_gemm_backward_kernelLauncher<T, WeightType, arch, ThreadblockShape, WarpShape, 2>(
+            generic_moe_gemm_backward_kernelLauncher<T, WeightType, TransC, arch, ThreadblockShape, WarpShape, 2>(
                 A,
                 B,
                 C,
@@ -216,7 +218,7 @@ void dispatch_gemm_config(
                 occupancy);
             break;
         case 3:
-            generic_moe_gemm_backward_kernelLauncher<T, WeightType, arch, ThreadblockShape, WarpShape, 3>(
+            generic_moe_gemm_backward_kernelLauncher<T, WeightType, TransC, arch, ThreadblockShape, WarpShape, 3>(
                 A,
                 B,
                 C,
@@ -228,7 +230,7 @@ void dispatch_gemm_config(
                 occupancy);
             break;
         case 4:
-            generic_moe_gemm_backward_kernelLauncher<T, WeightType, arch, ThreadblockShape, WarpShape, 4>(
+            generic_moe_gemm_backward_kernelLauncher<T, WeightType, TransC, arch, ThreadblockShape, WarpShape, 4>(
                 A,
                 B,
                 C,
@@ -256,6 +258,7 @@ void dispatch_gemm_config(
 
 template <typename T,
           typename WeightType,
+          bool     TransC,
           typename arch,
           typename ThreadblockShape,
           typename WarpShape,
@@ -276,7 +279,7 @@ void dispatch_gemm_config(
 {
     switch (gemm_config.stages) {
         case 2:
-            generic_moe_gemm_backward_kernelLauncher<T, WeightType, arch, ThreadblockShape, WarpShape, 2>(
+            generic_moe_gemm_backward_kernelLauncher<T, WeightType, TransC, arch, ThreadblockShape, WarpShape, 2>(
                 A,
                 B,
                 C,
@@ -304,6 +307,7 @@ void dispatch_gemm_config(
 
 template <typename T,
           typename WeightType,
+          bool     TransC,
           typename arch,
           typename ThreadblockShape,
           typename WarpShape,
@@ -335,6 +339,7 @@ void dispatch_gemm_config(
 
 template<typename T,
          typename WeightType,
+         bool     TransC,
          typename arch,
          typename std::enable_if<
             !std::is_same<T, float>::value &&
@@ -352,7 +357,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 {
     switch (gemm_config.tile_config) {
         case CutlassTileConfig::CtaShape32x128x64_WarpShape32x32x64:
-            dispatch_gemm_config<T, WeightType, arch,
+            dispatch_gemm_config<T, WeightType, TransC, arch,
                                  cutlass::gemm::GemmShape<64, 128, 64>,
                                  cutlass::gemm::GemmShape<32, 32, 64>>(A,
                                                                        B,
@@ -367,7 +372,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 
             break;
         case CutlassTileConfig::CtaShape64x128x64_WarpShape32x64x64:
-            dispatch_gemm_config<T, WeightType, arch,
+            dispatch_gemm_config<T, WeightType, TransC, arch,
                                  cutlass::gemm::GemmShape<64, 128, 64>,
                                  cutlass::gemm::GemmShape<32, 64, 64>>(A,
                                                                        B,
@@ -382,7 +387,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 
             break;
         case CutlassTileConfig::CtaShape128x128x64_WarpShape64x32x64:
-            dispatch_gemm_config<T, WeightType, arch,
+            dispatch_gemm_config<T, WeightType, TransC, arch,
                                  cutlass::gemm::GemmShape<128, 128, 64>,
                                  cutlass::gemm::GemmShape<64, 32, 64>>(A,
                                                                        B,
@@ -418,6 +423,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 
 template<typename T,
          typename WeightType,
+         bool     TransC,
          typename arch,
          typename std::enable_if<
             std::is_same<T, float>::value &&
@@ -435,7 +441,7 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 {
     switch (gemm_config.tile_config) {
         case CutlassTileConfig::CtaShape128x128x8_WarpShape64x64x8:
-            dispatch_gemm_config<T, WeightType, arch,
+            dispatch_gemm_config<T, WeightType, TransC, arch,
                                  cutlass::gemm::GemmShape<128, 128, 8>,
                                  cutlass::gemm::GemmShape<64, 64, 8>>(A,
                                                                       B,
@@ -469,7 +475,9 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <typename T, typename WeightType>
+template <typename T,
+          typename WeightType>
+template <bool     TransC>
 void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
     T*                A,
     WeightType*       B,
@@ -484,7 +492,7 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
 {
     if (sm_ >= 70 && sm_ < 75) {
 #ifdef ARCH_70
-        dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm70>(
+        dispatch_moe_gemm_to_cutlass<T, WeightType, TransC, cutlass::arch::Sm70>(
             A,
             B,
             C,
@@ -499,7 +507,7 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
     }
     else if (sm_ >= 75 && sm_ < 80) {
 #ifdef ARCH_75
-        dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm75>(
+        dispatch_moe_gemm_to_cutlass<T, WeightType, TransC, cutlass::arch::Sm75>(
             A,
             B,
             C,
@@ -514,7 +522,7 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
     }
     else if (sm_ >= 80 && sm_ < 90) {
 #ifdef ARCH_80
-        dispatch_moe_gemm_to_cutlass<T, WeightType, cutlass::arch::Sm80>(
+        dispatch_moe_gemm_to_cutlass<T, WeightType, TransC, cutlass::arch::Sm80>(
             A,
             B,
             C,
@@ -538,7 +546,9 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename T, typename WeightType>
+template <typename T,
+          typename WeightType>
+template <bool     TransC>
 void MoeGemmRunner<T, WeightType>::run_gemm_backward(
     T*           A,
     WeightType*  B,
@@ -558,16 +568,16 @@ void MoeGemmRunner<T, WeightType>::run_gemm_backward(
     nvtxRangeId_t r1 = nvtxRangeStartA("Backward: estimate best config");
 
     for (size_t ii = 0; ii < candidate_configs.size(); ++ii) {
-        dispatch_to_arch_backward(A,
-                                  B,
-                                  C,
-                                  gemm_m,
-                                  gemm_n,
-                                  gemm_k_per_expert,
-                                  num_experts,
-                                  candidate_configs[ii],
-                                  stream,
-                                  &occupancies[ii]);
+        dispatch_to_arch_backward<TransC>(A,
+                                          B,
+                                          C,
+                                          gemm_m,
+                                          gemm_n,
+                                          gemm_k_per_expert,
+                                          num_experts,
+                                          candidate_configs[ii],
+                                          stream,
+                                          &occupancies[ii]);
     }
 
     static constexpr int workspace_bytes = 0;  // No workspace for MoE GEMMs.
@@ -587,15 +597,15 @@ void MoeGemmRunner<T, WeightType>::run_gemm_backward(
     nvtxRangeEnd(r1);
     nvtxRangeId_t r2 = nvtxRangeStartA("Backward: run gemm");
 
-    dispatch_to_arch_backward(A,
-                              B,
-                              C,
-                              gemm_m,
-                              gemm_n,
-                              gemm_k_per_expert,
-                              num_experts,
-                              chosen_config,
-                              stream);
+    dispatch_to_arch_backward<TransC>(A,
+                                      B,
+                                      C,
+                                      gemm_m,
+                                      gemm_n,
+                                      gemm_k_per_expert,
+                                      num_experts,
+                                      chosen_config,
+                                      stream);
     nvtxRangeEnd(r2);
 }
 
@@ -614,10 +624,19 @@ void MoeGemmRunner<T, WeightType>::moe_gemm_backward(T*           A,
                                                      int*         gemm_k_per_expert,
                                                      int          num_tokens,
                                                      int          num_experts,
+                                                     bool         transC,
                                                      cudaStream_t stream)
 {
-    run_gemm_backward(
-        A, B, C, gemm_m, gemm_n, gemm_k_per_expert, num_tokens, num_experts, stream);
+    if (transC)
+    {
+        run_gemm_backward<true>(
+            A, B, C, gemm_m, gemm_n, gemm_k_per_expert, num_tokens, num_experts, stream);
+    }
+    else
+    {
+        run_gemm_backward<false>(
+            A, B, C, gemm_m, gemm_n, gemm_k_per_expert, num_tokens, num_experts, stream);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
