@@ -217,8 +217,8 @@ void dispatch_gemm_config(
                 stream,
                 occupancy);
             break;
-        case 3:
-            generic_moe_gemm_backward_kernelLauncher<T, WeightType, TransC, arch, ThreadblockShape, WarpShape, 3>(
+        case 4:
+            generic_moe_gemm_backward_kernelLauncher<T, WeightType, TransC, arch, ThreadblockShape, WarpShape, 4>(
                 A,
                 B,
                 C,
@@ -229,8 +229,8 @@ void dispatch_gemm_config(
                 stream,
                 occupancy);
             break;
-        case 4:
-            generic_moe_gemm_backward_kernelLauncher<T, WeightType, TransC, arch, ThreadblockShape, WarpShape, 4>(
+        case 6:
+            generic_moe_gemm_backward_kernelLauncher<T, WeightType, TransC, arch, ThreadblockShape, WarpShape, 6>(
                 A,
                 B,
                 C,
@@ -356,10 +356,10 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
                                   int*              occupancy = nullptr)
 {
     switch (gemm_config.tile_config) {
-        case CutlassTileConfig::CtaShape32x128x64_WarpShape32x32x64:
+        case CutlassTileConfig::CtaShape128x128x32_WarpShape64x64x32:
             dispatch_gemm_config<T, WeightType, TransC, arch,
-                                 cutlass::gemm::GemmShape<64, 128, 64>,
-                                 cutlass::gemm::GemmShape<32, 32, 64>>(A,
+                                 cutlass::gemm::GemmShape<128, 128, 32>,
+                                 cutlass::gemm::GemmShape<64, 64, 32>>(A,
                                                                        B,
                                                                        C,
                                                                        gemm_m,
@@ -369,43 +369,6 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
                                                                        gemm_config,
                                                                        stream,
                                                                        occupancy);
-
-            break;
-        case CutlassTileConfig::CtaShape64x128x64_WarpShape32x64x64:
-            dispatch_gemm_config<T, WeightType, TransC, arch,
-                                 cutlass::gemm::GemmShape<64, 128, 64>,
-                                 cutlass::gemm::GemmShape<32, 64, 64>>(A,
-                                                                       B,
-                                                                       C,
-                                                                       gemm_m,
-                                                                       gemm_n,
-                                                                       gemm_k_per_expert,
-                                                                       num_experts,
-                                                                       gemm_config,
-                                                                       stream,
-                                                                       occupancy);
-
-            break;
-        case CutlassTileConfig::CtaShape128x128x64_WarpShape64x32x64:
-            dispatch_gemm_config<T, WeightType, TransC, arch,
-                                 cutlass::gemm::GemmShape<128, 128, 64>,
-                                 cutlass::gemm::GemmShape<64, 32, 64>>(A,
-                                                                       B,
-                                                                       C,
-                                                                       gemm_m,
-                                                                       gemm_n,
-                                                                       gemm_k_per_expert,
-                                                                       num_experts,
-                                                                       gemm_config,
-                                                                       stream,
-                                                                       occupancy);
-            break;
-        case CutlassTileConfig::Undefined:
-            throw std::runtime_error("[FT Error][dispatch_moe_gemm_to_cutlass] gemm config undefined.");
-            break;
-        case CutlassTileConfig::ChooseWithHeuristic:
-            throw std::runtime_error(
-                "[FT Error][dispatch_moe_gemm_to_cutlass] gemm config should have already been set by heuristic.");
             break;
         default:
             throw std::runtime_error(
@@ -454,13 +417,6 @@ void dispatch_moe_gemm_to_cutlass(T*                A,
                                                                       stream,
                                                                       occupancy);
 
-            break;
-        case CutlassTileConfig::Undefined:
-            throw std::runtime_error("[FT Error][dispatch_moe_gemm_to_cutlass] gemm config undefined.");
-            break;
-        case CutlassTileConfig::ChooseWithHeuristic:
-            throw std::runtime_error(
-                "[FT Error][dispatch_moe_gemm_to_cutlass] gemm config should have already been set by heuristic.");
             break;
         default:
             throw std::runtime_error(
@@ -560,42 +516,22 @@ void MoeGemmRunner<T, WeightType>::run_gemm_backward(
     int          num_experts,
     cudaStream_t stream)
 {
-    static constexpr bool is_weight_only = !std::is_same<T, WeightType>::value;
-    static constexpr bool only_simt_configs = std::is_same<T, float>::value;
-    std::vector<CutlassGemmConfig> candidate_configs = get_candidate_configs(sm_, is_weight_only, only_simt_configs);
-    std::vector<int> occupancies(candidate_configs.size());
+    CutlassGemmConfig chosen_config = CutlassGemmConfig();
 
-    nvtxRangeId_t r1 = nvtxRangeStartA("Backward: estimate best config");
+    if (std::is_same<T, float>::value)
+        chosen_config.tile_config = CutlassTileConfig::CtaShape128x128x8_WarpShape64x64x8;
+    else
+        chosen_config.tile_config = CutlassTileConfig::CtaShape128x128x32_WarpShape64x64x32;
 
-    for (size_t ii = 0; ii < candidate_configs.size(); ++ii) {
-        dispatch_to_arch_backward<TransC>(A,
-                                          B,
-                                          C,
-                                          gemm_m,
-                                          gemm_n,
-                                          gemm_k_per_expert,
-                                          num_experts,
-                                          candidate_configs[ii],
-                                          stream,
-                                          &occupancies[ii]);
+    if (sm_ > 80)
+    {
+        if (sm_ == 86 || sm_ == 89)
+            chosen_config.stages = 4;
+        else
+            chosen_config.stages = 6;
     }
-
-    static constexpr int workspace_bytes = 0;  // No workspace for MoE GEMMs.
-    static constexpr int split_k_limit   = 1;  // MoE GEMM does not support split-k.
-
-    CutlassGemmConfig chosen_config = estimate_best_config_from_occupancies(candidate_configs,
-                                                                            occupancies,
-                                                                            gemm_m,
-                                                                            gemm_n,
-                                                                            num_tokens,
-                                                                            num_experts,
-                                                                            split_k_limit,
-                                                                            workspace_bytes,
-                                                                            multi_processor_count_,
-                                                                            is_weight_only);
-
-    nvtxRangeEnd(r1);
-    nvtxRangeId_t r2 = nvtxRangeStartA("Backward: run gemm");
+    else
+        chosen_config.stages = 2;
 
     dispatch_to_arch_backward<TransC>(A,
                                       B,
@@ -606,7 +542,6 @@ void MoeGemmRunner<T, WeightType>::run_gemm_backward(
                                       num_experts,
                                       chosen_config,
                                       stream);
-    nvtxRangeEnd(r2);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

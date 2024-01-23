@@ -24,12 +24,19 @@ enum class CutlassTileConfig {
     CtaShape32x128x64_WarpShape32x32x64,
 
     // Warp configs for M=64
-    CtaShape64x128x64_WarpShape32x64x64,
+    // CtaShape64x128x64_WarpShape32x64x64,
     CtaShape64x128x64_WarpShape64x32x64,
 
     // Warp configs for M=128
     CtaShape128x128x64_WarpShape64x32x64,
-    CtaShape128x128x64_WarpShape128x32x64
+    CtaShape128x128x64_WarpShape128x32x64,
+
+    // CUTLASS Grouped GEMM config
+    CtaShape64x128x64_WarpShape32x64x64,
+    CtaShape128x64x64_WarpShape64x32x64,
+    CtaShape128x128x32_WarpShape64x64x32,
+    CtaShape128x64x32_WarpShape64x32x32,
+    CtaShape64x128x32_WarpShape32x64x32
 };
 
 enum class SplitKStyle {
