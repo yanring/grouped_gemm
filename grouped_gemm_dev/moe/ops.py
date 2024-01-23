@@ -205,7 +205,7 @@ def permute(unpermuted_inputs, expert_for_rows, max_token_num):
 def unpermute(permuted_inputs, expert_for_rows, source_row_to_dest_row, max_token_num):
   return UnpermuteMoE.apply(permuted_inputs, expert_for_rows, source_row_to_dest_row, max_token_num)
 
-def groupedgemm(permuted_inputs, weights, tokens_per_expert, transB):
+def groupedgemm(permuted_inputs, weights, tokens_per_expert, transB=False):
   return GroupedGemmMoE.apply(permuted_inputs, weights, tokens_per_expert, transB)
 
 def sinkhorn_kernel(cost, tol=0.0001):

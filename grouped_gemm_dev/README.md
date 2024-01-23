@@ -143,7 +143,7 @@ print(unpermute_outputs)
 >   permuted_inputs: torch.Tensor,
 >   weights: torch.Tensor,
 >   tokens_per_expert: torch.Tensor,
->   transB: bool) -> torch.Tensor
+>   transB=False: bool) -> torch.Tensor
 > ```
 
 Matrix product of two tensors `permuted_inputs` and `weights` for each expert.
