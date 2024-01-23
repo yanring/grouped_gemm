@@ -69,6 +69,9 @@ class PermuteMoE(torch.autograd.Function):
       PermuteMoE.workspace_fw = []
       PermuteMoE.workspace_bw = []
 
+    # torch.int64 to torch.int32 as the later is far enough to cover num of experts.
+    expert_for_rows = expert_for_rows.to(torch.int32)
+
     permuted_inputs, source_row_to_dest_row, PermuteMoE.workspace_fw = torch.ops.moe_unit_ops.moe_permute_op(
       unpermuted_inputs,
       expert_for_rows,
@@ -162,6 +165,8 @@ class UnpermuteMoE(torch.autograd.Function):
       UnpermuteMoE.workspace_fw = []
       UnpermuteMoE.workspace_bw = []
 
+    # torch.int64 to torch.int32 as the later is far enough to cover num of experts.
+    expert_for_rows = expert_for_rows.to(torch.int32)
     ctx.expert_for_rows = expert_for_rows
 
     original_output, UnpermuteMoE.workspace_bw = torch.ops.moe_unit_ops.moe_recover_op(
