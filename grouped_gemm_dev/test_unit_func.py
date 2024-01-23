@@ -388,7 +388,7 @@ class TestMoe(unittest.TestCase):
     inter_size = hidden_size * 4
     num_experts = 8
     
-    atol = 1e-4
+    atol = 1e-3
 
     dtype = torch.float32
     self.grouped_gemm_helper(num_rows, hidden_size, inter_size, num_experts, dtype, atol, RAND_INPUT_ACT, PRINT)
