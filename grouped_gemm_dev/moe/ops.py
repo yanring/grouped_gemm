@@ -270,7 +270,7 @@ class GroupedGemmMoE(torch.autograd.Function):
         weights,
         tokens_per_expert,
         not transB)
-      
+
     weight_grad = None
     if ctx.needs_input_grad[1]:
       weight_grad = torch.ops.moe_unit_ops.moe_group_gemm_backward_op(
