@@ -175,21 +175,21 @@ Expect {permuted_inputs.size(1)}, but got {weights.size(2)}.")
 
     permuted_inputs_grad = permuted_inputs_grad.contiguous()
 
-    weight_grad = None
-    if ctx.needs_input_grad[0]:
-      weight_grad = torch.ops.moe_unit_ops.moe_group_gemm_backward_op(
-        permuted_inputs,
-        permuted_inputs_grad,
-        tokens_per_expert,
-        transB)
-
     activation_grad = None
-    if ctx.needs_input_grad[1]:
+    if ctx.needs_input_grad[0]:
       activation_grad = torch.ops.moe_unit_ops.moe_group_gemm_op(
         permuted_inputs_grad,
         weights,
         tokens_per_expert,
         not transB)
+      
+    weight_grad = None
+    if ctx.needs_input_grad[1]:
+      weight_grad = torch.ops.moe_unit_ops.moe_group_gemm_backward_op(
+        permuted_inputs,
+        permuted_inputs_grad,
+        tokens_per_expert,
+        transB)
 
     return activation_grad, weight_grad, None, None
 
