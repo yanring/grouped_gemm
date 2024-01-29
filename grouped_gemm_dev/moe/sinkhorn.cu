@@ -12,7 +12,7 @@
 
 #include <cmath>
 
-namespace torch_ext {
+namespace groupedgemmformoe {
 
 __global__ void sinkhorn_kernel(float *cost, const int rows, const int cols, float tol) {
     assert(rows >= cols && cols < blockDim.x);
@@ -111,4 +111,4 @@ torch::Tensor sinkhorn(torch::Tensor cost, const double tol) {
     return cost;
 }
 
-}  // namespace torch_ext
+}  // namespace groupedgemmformoe

@@ -6,8 +6,8 @@
 
 #include <torch/torch.h>
 
-namespace torch_ext {
+namespace groupedgemmformoe {
 
 torch::Tensor sinkhorn(torch::Tensor cost, const double tol=0.0001);
 
-}  // namespace torch_ext
+}  // namespace groupedgemmformoe
