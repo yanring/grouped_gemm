@@ -47,7 +47,7 @@ Tensor run_group_gemm_helper(Tensor    input_activations,
 
     if (gemm_k & 0x7 != 0)
     {
-        throw std::runtime_error("gemm_k must be a multiple of 8.");
+        throw std::runtime_error("gemm_k of grouped gemm with variable M must be a multiple of 8.");
     }
 
     auto stream = at::cuda::getCurrentCUDAStream().stream();
@@ -55,7 +55,6 @@ Tensor run_group_gemm_helper(Tensor    input_activations,
     int *tokens_per_expert_ptr = get_ptr<int>(tokens_per_expert);
 
     T *input_act_ptr = get_ptr<T>(input_activations);
-    // int64_t *total_rows_before_expert_ptr = get_ptr<int64_t>(total_rows_before_expert);
     WeightType *fc1_expert_weights_ptr = get_ptr<WeightType>(fc1_expert_weights);
 
     const at::ScalarType _st = input_activations.scalar_type();
@@ -97,11 +96,10 @@ Tensor run_group_gemm_backward_helper(Tensor input_activations,
 
     if ((gemm_m & 0x7 != 0) || (gemm_n & 0x7 != 0))
     {
-        throw std::runtime_error("gemm_k must be a multiple of 8.");
+        throw std::runtime_error("gemm_m and gemm_n of grouped gemm with variable K must be multiples of 8.");
     }
 
     auto stream = at::cuda::getCurrentCUDAStream().stream();
-
 
     int *tokens_per_expert_ptr = get_ptr<int>(tokens_per_expert);
 
@@ -244,21 +242,6 @@ std::tuple<torch::Tensor, torch::Tensor, std::vector<Tensor>> moe_permute_op(
     const int num_rows = original_input.size(0);
     const int num_cols = original_input.size(1);
 
-    if (original_input.is_cpu())
-    {
-        throw std::runtime_error("The input \"activations\" of permute op is on the device: CPU!.");
-    }
-    if (expert_for_rows.dtype() != torch::kInt32)
-    {
-        std::cerr << "Warning: The type of the input \"expert_for_rows\" of permute op is Int64! The recommended type is int32." << std::endl;
-        expert_for_rows = expert_for_rows.to(torch::kInt32);
-    }
-    if (expert_for_rows.is_cpu())
-    {
-        std::cerr << "Warning: The input \"expert_for_rows\" of permute op is on the device: CPU!" << std::endl;
-        expert_for_rows = expert_for_rows.to(torch::kCUDA);
-    }
-
     // activations type
     const at::ScalarType _st = original_input.scalar_type();
 
@@ -376,16 +359,6 @@ std::tuple<torch::Tensor, std::vector<Tensor>> moe_recover_op(
 {
     const int num_rows = permuted_input.size(0);
     const int num_cols = permuted_input.size(1);
-
-    if (permuted_input.is_cpu())
-    {
-        throw std::runtime_error("The input \"permuted_input\" of permute op backward is on the device: CPU!.");
-    }
-    if (source_row_to_dest_row.is_cpu())
-    {
-        std::cerr << "Warning: The input \"source_row_to_dest_row\" of permute op backward is on the device: CPU!" << std::endl;
-        source_row_to_dest_row = source_row_to_dest_row.to(torch::kCUDA);
-    }
 
     // activations type
     const at::ScalarType _st = permuted_input.scalar_type();
