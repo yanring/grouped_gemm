@@ -9,10 +9,14 @@ import unittest
 import sys
 import time
 import torch.cuda.nvtx as nvtx
-import grouped_gemm
 
-# For local debug
-# torch.classes.load_library("./build/libmoe_unit_ops.so")
+try:
+  import grouped_gemm
+except ImportError:
+  print("grouped-gemm toolkit is not installed. Fall back to local import.")
+  # For local debug
+  torch.classes.load_library("./build/libmoe_unit_ops.so")
+
 
 def random_cuda_tensor(shape, dtype, mean=0, std=1):
     # https://pytorch.org/docs/stable/generated/torch.Tensor.normal_.html
@@ -372,6 +376,7 @@ class TestMoe(unittest.TestCase):
     execution_times = 1
     atol = 1e-4
 
+    print()
     dtype = torch.float32
     self.moe_permute_helper(num_rows, num_cols, num_experts, dtype, warmup_times, execution_times, atol, PRINT)
     dtype = torch.float16
@@ -390,6 +395,7 @@ class TestMoe(unittest.TestCase):
     
     atol = 1e-3
 
+    print()
     dtype = torch.float32
     self.grouped_gemm_helper(num_rows, hidden_size, inter_size, num_experts, dtype, atol, RAND_INPUT_ACT, PRINT)
     dtype = torch.float16
@@ -409,6 +415,7 @@ class TestMoe(unittest.TestCase):
     
     atol = 1e-3
 
+    print()
     dtype = torch.float32
     self.grouped_gemm_backward_helper(num_rows, hidden_size, inter_size, num_experts, dtype, atol, RAND_INPUT_ACT, RAND_INPUT_WEIGHT, PRINT)
     dtype = torch.float16

@@ -476,7 +476,7 @@ void MoeGemmRunner<T, WeightType>::dispatch_to_arch_backward(
             occupancy);
 #endif // ARCH_75
     }
-    else if (sm_ >= 80 && sm_ < 90) {
+    else if (sm_ >= 80 && sm_ <= 90) {
 #ifdef ARCH_80
         dispatch_moe_gemm_to_cutlass<T, WeightType, TransC, cutlass::arch::Sm80>(
             A,

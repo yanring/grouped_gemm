@@ -6,10 +6,13 @@ import torch
 import unittest
 import torch.cuda.nvtx as nvtx
 
-from grouped_gemm import permute, unpermute, groupedgemm
+try:
+  from grouped_gemm import permute, unpermute, groupedgemm
+except ImportError:
+  print("grouped-gemm toolkit is not installed. Fall back to local import.")
+  # For local debug
+  from moe.ops import permute, unpermute, groupedgemm
 
-# For local debug
-# from moe.ops import permute, unpermute, groupedgemm
 
 class TestMoeOps(unittest.TestCase):
 
