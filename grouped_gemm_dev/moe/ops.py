@@ -30,6 +30,9 @@ class PermuteMoE(torch.autograd.Function):
               expert_for_rows: torch.Tensor,
               max_token_num: int):
 
+    # torch.int64 to torch.int32 as the later is far enough to cover num of experts.
+    expert_for_rows = expert_for_rows.to(torch.int32)
+
     # Device check
     if unpermuted_inputs.is_cpu:
       raise RuntimeError("[Error] The input \"unpermuted_inputs\" of permute op is on the device: CPU!")
@@ -69,8 +72,6 @@ class PermuteMoE(torch.autograd.Function):
       PermuteMoE.workspace_fw = []
       PermuteMoE.workspace_bw = []
 
-    # torch.int64 to torch.int32 as the later is far enough to cover num of experts.
-    expert_for_rows = expert_for_rows.to(torch.int32)
 
     permuted_inputs, source_row_to_dest_row, PermuteMoE.workspace_fw = torch.ops.moe_unit_ops.moe_permute_op(
       unpermuted_inputs,
@@ -115,6 +116,9 @@ class UnpermuteMoE(torch.autograd.Function):
               expert_for_rows: torch.Tensor,
               source_row_to_dest_row: torch.Tensor,
               max_token_num: int):
+
+    # torch.int64 to torch.int32 as the later is far enough to cover num of experts.
+    expert_for_rows = expert_for_rows.to(torch.int32)
 
     # Device check
     if permuted_inputs.is_cpu:
@@ -165,8 +169,6 @@ class UnpermuteMoE(torch.autograd.Function):
       UnpermuteMoE.workspace_fw = []
       UnpermuteMoE.workspace_bw = []
 
-    # torch.int64 to torch.int32 as the later is far enough to cover num of experts.
-    expert_for_rows = expert_for_rows.to(torch.int32)
     ctx.expert_for_rows = expert_for_rows
 
     original_output, UnpermuteMoE.workspace_bw = torch.ops.moe_unit_ops.moe_recover_op(
