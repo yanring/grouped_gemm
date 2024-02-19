@@ -95,10 +95,10 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: Unix",
     ],
-    package_dir={'grouped_gemm': 'grouped_gemm_dev'},
-    packages=['grouped_gemm', 'grouped_gemm.moe'],
+    package_dir={'grouped_gemm_dev': 'grouped_gemm_dev'},
+    packages=['grouped_gemm_dev', 'grouped_gemm.moe'],
     package_data={
-    'grouped_gemm': ['build/libmoe_unit_ops.so'],
+    'grouped_gemm_dev': ['build/libmoe_unit_ops.so'],
     },
     cmdclass={"build_ext": BuildExtension},
     install_requires=["absl-py", "numpy", "torch"],
