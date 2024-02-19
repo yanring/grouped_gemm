@@ -84,7 +84,7 @@ subprocess.run([_cmake_bin, "--build", build_dir, "--parallel"])
 
 
 setup(
-    name="grouped_gemm",
+    name="grouped_gemm_dev",
     version="0.5",
     author="Jiang Shao, Shiqing Fan",
     author_email="jiangs@nvidia.com, shiqingf@nvidia.com",
@@ -95,10 +95,10 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: Unix",
     ],
-    package_dir={'grouped_gemm_dev': 'grouped_gemm_dev'},
-    packages=['grouped_gemm_dev', 'grouped_gemm_dev.moe'],
+    package_dir={'grouped_gemm': 'grouped_gemm_dev'},
+    packages=['grouped_gemm', 'grouped_gemm.moe'],
     package_data={
-    'grouped_gemm_dev': ['build/libmoe_unit_ops.so'],
+    'grouped_gemm': ['build/libmoe_unit_ops.so'],
     },
     cmdclass={"build_ext": BuildExtension},
     install_requires=["absl-py", "numpy", "torch"],
