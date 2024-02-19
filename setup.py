@@ -96,7 +96,7 @@ setup(
         "Operating System :: Unix",
     ],
     package_dir={'grouped_gemm_dev': 'grouped_gemm_dev'},
-    packages=['grouped_gemm_dev', 'grouped_gemm.moe'],
+    packages=['grouped_gemm_dev', 'grouped_gemm_dev.moe'],
     package_data={
     'grouped_gemm_dev': ['build/libmoe_unit_ops.so'],
     },
