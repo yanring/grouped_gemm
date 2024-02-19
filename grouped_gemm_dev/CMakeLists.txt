@@ -53,7 +53,7 @@ if torch.cuda.is_available():
   elseif (GPU_ARCH LESS 80)
     add_definitions("-DARCH_75")
   elseif (GPU_ARCH LESS_EQUAL 90)
-    add_definitions("-DARCH_80")
+    add_definitions("-DARCH_80 -DARCH_90")
   else ()
     message (SEND_ERROR "GPU arch not supported!")
   endif()
