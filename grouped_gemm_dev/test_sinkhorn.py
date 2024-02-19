@@ -6,7 +6,7 @@ import unittest
 import itertools
 
 from absl.testing import parameterized
-from grouped_gemm import sinkhorn_kernel
+from grouped_gemm_dev import sinkhorn_kernel
 import numpy as np
 import torch
 

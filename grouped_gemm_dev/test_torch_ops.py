@@ -7,7 +7,7 @@ import unittest
 import torch.cuda.nvtx as nvtx
 
 try:
-  from grouped_gemm import permute, unpermute, gmm
+  from grouped_gemm_dev import permute, unpermute, gmm
 except ImportError:
   print("grouped-gemm toolkit is not installed. Fall back to local import.")
   # For local debug

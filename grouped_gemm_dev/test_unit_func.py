@@ -11,7 +11,7 @@ import time
 import torch.cuda.nvtx as nvtx
 
 try:
-  import grouped_gemm
+  import grouped_gemm_dev
 except ImportError:
   print("grouped-gemm toolkit is not installed. Fall back to local import.")
   # For local debug
