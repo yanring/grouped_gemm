@@ -29,7 +29,8 @@ ext_modules = [
                 "-fopenmp", "-fPIC", "-Wno-strict-aliasing"
             ],
             "nvcc": [
-                f"--generate-code=arch=compute_80,code=sm_80 --generate-code=arch=compute_90,code=sm_90",
+                f"--generate-code arch=compute_80,code=sm_80",
+                f"--generate-code arch=compute_90,code=sm_90",
                 f"-DGROUPED_GEMM_DEVICE_CAPABILITY=80",
                 # NOTE: CUTLASS requires c++17.
                 "-std=c++17",
