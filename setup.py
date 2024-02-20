@@ -15,7 +15,7 @@ cwd = Path(os.path.dirname(os.path.abspath(__file__)))
 # _dc = f"{_dc[0]}{_dc[1]}"
 
 # DEBUG: Currently we only test perf on A100
-_dc = 80
+# _dc = 80
 
 ext_modules = [
     CUDAExtension(
@@ -29,8 +29,8 @@ ext_modules = [
                 "-fopenmp", "-fPIC", "-Wno-strict-aliasing"
             ],
             "nvcc": [
-                f"--generate-code=arch=compute_{_dc},code=sm_{_dc}",
-                f"-DGROUPED_GEMM_DEVICE_CAPABILITY={_dc}",
+                f"--generate-code=arch=compute_80,code=sm_80,arch=compute_90,code=sm_90",
+                f"-DGROUPED_GEMM_DEVICE_CAPABILITY=80,90",
                 # NOTE: CUTLASS requires c++17.
                 "-std=c++17",
             ],
