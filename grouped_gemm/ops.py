@@ -16,7 +16,10 @@ class GroupedGemm(torch.autograd.Function):
         assert torch.count_nonzero(batch_sizes) != 0, "Input batch_sizes should not be all zeros!"
         ctx.save_for_backward(a, b, batch_sizes)
         ctx.trans_b = trans_b
-        return backend.gmm(a, b, batch_sizes, trans_a=False, trans_b=trans_b)
+        torch.cuda.synchronize()
+        out = backend.gmm(a, b, batch_sizes, trans_a=False, trans_b=trans_b)
+        torch.cuda.synchronize()
+        return out
 
     @staticmethod
     def backward(ctx, grad):
@@ -26,14 +29,18 @@ class GroupedGemm(torch.autograd.Function):
 
         agrad = None
         if ctx.needs_input_grad[0]:
+            torch.cuda.synchronize()
             agrad = backend.gmm(
                 grad, b, batch_sizes, trans_a=False, trans_b=not trans_b)
+            torch.cuda.synchronize()
 
         bgrad = None
         if ctx.needs_input_grad[1]:
             lhs, rhs = (grad, a) if trans_b else (a, grad)
+            torch.cuda.synchronize()
             bgrad = backend.gmm(
                 lhs, rhs, batch_sizes, trans_a=True, trans_b=False)
+            torch.cuda.synchronize()
         return agrad, bgrad, None, None
 
 
